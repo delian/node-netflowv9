@@ -55,3 +55,5 @@ The flow will be presented in a format very similar to this:
          fw_status: 64,
          flow_sampler_id: 2 } }
 
+
+There will be one callback for each flow, not for each packet. If the packet contain 10 flows, there will be 10 callbacks containing each different flow.
