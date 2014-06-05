@@ -206,18 +206,15 @@ function NetFlowV9(cb) {
         var fsId = buf.readUInt16BE(0);
         // var len = buf.readUInt16BE(2);
         var t = me.templates[fsId];
-        var n = 4;
         var o = {};
-        var z;
-        var nf;
-        for (var i=0;i< t.length;i++) {
+        var n,i,z,nf;
+        for (i=0, n=4; i<t.length;i++, n+=z.len) {
             z=t[i];
             nf = nfTypes[z.type];
             if (nf) 
                 o[nf.name] = nf.decode(buf.slice(n), z.len);
             else
                 console.log('Unknown NF Type', z);
-            n+= z.len;
         }
         return o;
     }
