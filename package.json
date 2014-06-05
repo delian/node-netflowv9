@@ -1,6 +1,6 @@
 {
   "name": "node-netflowv9",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "NetFlow Version 9 compatible library for Node.JS",
   "main": "netflowv9.js",
   "scripts": {
