@@ -213,11 +213,10 @@ function NetFlowV9(cb) {
         for (var i=0;i< t.length;i++) {
             z=t[i];
             nf = nfTypes[z.type];
-            if (!nf) {
+            if (nf) 
+                o[nf.name] = nf.decode(buf.slice(n), z.len);
+            else
                 console.log('Unknown NF Type', z);
-                continue;
-            }
-            o[nf.name] = nf.decode(buf.slice(n), z.len);
             n+= z.len;
         }
         return o;
