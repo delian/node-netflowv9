@@ -24,7 +24,7 @@
     "url": "https://github.com/delian/node-netflowv9/issues"
   },
   "dependencies": {
-    "dgram": "*",
+    "dgram": "*"
   },
   "homepage": "https://github.com/delian/node-netflowv9"
 }
