@@ -179,11 +179,15 @@ var nfTypes = {
     '129': { name: 'out_as', len: 4, decode: decNumber }
 };
 
-function NetFlowV9(cb) {
-    if (!(this instanceof NetFlowV9)) return new NetFlowV9(cb);
-
-    var me = this;
-    this.templates = {};
+function nfPktDecode(msg,templates) {
+    var out = { header: {}, flows: [] };
+    out.header.version = msg.readUInt16BE(0);
+    out.header.count = msg.readUInt16BE(2);
+    out.header.uptime = msg.readUInt32BE(4);
+    out.header.seconds = msg.readUInt32BE(8);
+    out.header.sequence = msg.readUInt32BE(12);
+    out.header.sourceId = msg.readUInt32BE(16);
+    if (out.header.version!=9) return;
 
     function readTemplate(buffer) {
         // var fsId = buffer.readUInt16BE(0);
@@ -197,7 +201,7 @@ function NetFlowV9(cb) {
             for (var i = 0; i<cnt; i++) {
                 list.push({ type: buf.readUInt16BE(4+4*i), len: buf.readUInt16BE(6+4*i) });
             }
-            me.templates[tId] = list;
+            templates[tId] = list;
             buf = buf.slice(4+cnt*4);
         }
     }
@@ -205,13 +209,13 @@ function NetFlowV9(cb) {
     function decodeTemplate(buf) {
         var fsId = buf.readUInt16BE(0);
         // var len = buf.readUInt16BE(2);
-        var t = me.templates[fsId];
+        var t = templates[fsId];
         var o = {};
         var n,i,z,nf;
         for (i=0, n=4; i<t.length;i++, n+=z.len) {
             z=t[i];
             nf = nfTypes[z.type];
-            if (nf) 
+            if (nf)
                 o[nf.name] = nf.decode(buf.slice(n), z.len);
             else
                 console.log('Unknown NF Type', z);
@@ -219,39 +223,35 @@ function NetFlowV9(cb) {
         return o;
     }
 
+    var buf = msg.slice(20);
+    while(buf.length>0) {
+        var fsId = buf.readUInt16BE(0);
+        var len = buf.readUInt16BE(2);
+        if (fsId==0) readTemplate(buf);
+        if (typeof templates[fsId] != 'undefined') out.flows.push(decodeTemplate(buf));
+        buf = buf.slice(len);
+    }
+}
+
+function NetFlowV9(cb) {
+    if (!(this instanceof NetFlowV9)) return new NetFlowV9(cb);
+    var me = this;
+    this.templates = {};
+    this.nfPktDecode = nfPktDecode;
     this.server = dgram.createSocket('udp4');
     this.server.on('message',function(msg, rinfo) {
         //console.log('rinfo',rinfo);
         if (rinfo.size<20) return;
-        var header = {};
-        var o = {};
-        header.version = msg.readUInt16BE(0);
-        header.count = msg.readUInt16BE(2);
-        header.uptime = msg.readUInt32BE(4);
-        header.seconds = msg.readUInt32BE(8);
-        header.sequence = msg.readUInt32BE(12);
-        header.sourceId = msg.readUInt32BE(16);
-        if (header.version!=9) return;
-
-        var buf = msg.slice(20);
-        while(buf.length>0) {
-            var fsId = buf.readUInt16BE(0);
-            var len = buf.readUInt16BE(2);
-            // ----
-            if (fsId==0) readTemplate(buf);
-
-            if (typeof me.templates[fsId] != 'undefined') {
-                // Now we have to read the flowset
-                o = decodeTemplate(buf);
-                if (cb) cb({
-                    header: header,
-                    rinfo: rinfo,
-                    flow: o
-                });
-            }
-            // ----
-            buf = buf.slice(len);
-        }
+        var o = nfPktDecode(msg,me.templates);
+        o.rinfo = rinfo;
+        if (cb) o.flows.forEach(function(n) {
+            cb({
+                header: o.header,
+                rinfo: rinfo,
+                packet: msg,
+                flow: n
+            });
+        });
     });
     this.listen = function(port) {
         var me = this;
