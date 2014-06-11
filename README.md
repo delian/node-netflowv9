@@ -32,6 +32,7 @@ The flow will be presented in a format very similar to this:
          family: 'IPv4',
          port: 29471,
          size: 1452 },
+      packet: Buffer <00 00 00 00 ....>
       flow: 
       { in_pkts: 3,
          in_bytes: 144,
@@ -57,3 +58,10 @@ The flow will be presented in a format very similar to this:
 
 
 There will be one callback for each flow, not for each packet. If the packet contain 10 flows, there will be 10 callbacks containing each different flow.
+
+You can also access a NetFlow decode function directly. Do something like this:
+
+    var netflowPktDecoder = require('node-netflowv9').nfPktDecode;
+    ....
+    console.log(netflowPktDecoder(buffer))
+
