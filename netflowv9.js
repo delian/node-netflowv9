@@ -204,7 +204,6 @@ function nfPktDecode(msg,templates) {
             templates[tId] = list;
             buf = buf.slice(4+cnt*4);
         }
-        return out;
     }
 
     function decodeTemplate(buf) {
@@ -232,6 +231,8 @@ function nfPktDecode(msg,templates) {
         if (typeof templates[fsId] != 'undefined') out.flows.push(decodeTemplate(buf));
         buf = buf.slice(len);
     }
+    
+    return out;
 }
 
 function NetFlowV9(cb) {
