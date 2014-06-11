@@ -204,6 +204,7 @@ function nfPktDecode(msg,templates) {
             templates[tId] = list;
             buf = buf.slice(4+cnt*4);
         }
+        return out;
     }
 
     function decodeTemplate(buf) {
@@ -243,7 +244,6 @@ function NetFlowV9(cb) {
         //console.log('rinfo',rinfo);
         if (rinfo.size<20) return;
         var o = nfPktDecode(msg,me.templates);
-        o.rinfo = rinfo;
         if (cb) o.flows.forEach(function(n) {
             cb({
                 header: o.header,
