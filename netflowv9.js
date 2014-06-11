@@ -235,7 +235,7 @@ function nfPktDecode(msg,templates) {
     return out;
 }
 
-function NetFlowV9(cb) {
+function NetFlowV9(cb,flushPerPkt) {
     if (!(this instanceof NetFlowV9)) return new NetFlowV9(cb);
     var me = this;
     this.templates = {};
@@ -245,14 +245,23 @@ function NetFlowV9(cb) {
         //console.log('rinfo',rinfo);
         if (rinfo.size<20) return;
         var o = nfPktDecode(msg,me.templates);
-        if (cb) o.flows.forEach(function(n) {
-            cb({
-                header: o.header,
-                rinfo: rinfo,
-                packet: msg,
-                flow: n
+        if (cb) {
+            if (flushPerPkt)
+            {
+                o.rinfo = rinfo;
+                o.packet = msg;
+                cb(o);
+            }
+            else
+            o.flows.forEach(function(n) {
+                cb({
+                    header: o.header,
+                    rinfo: rinfo,
+                    packet: msg,
+                    flow: n
+                });
             });
-        });
+        }
     });
     this.listen = function(port) {
         var me = this;
