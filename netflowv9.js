@@ -236,7 +236,7 @@ function nfPktDecode(msg,templates) {
 }
 
 function NetFlowV9(cb,flushPerPkt) {
-    if (!(this instanceof NetFlowV9)) return new NetFlowV9(cb);
+    if (!(this instanceof NetFlowV9)) return new NetFlowV9(cb,flushPerPkt);
     var me = this;
     this.templates = {};
     this.nfPktDecode = nfPktDecode;
