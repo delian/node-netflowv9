@@ -204,27 +204,22 @@ function nfPktDecode(msg,templates) {
                 len += buf.readUInt16BE(6+4*i);
             }
 
-            if (len%4) len+=4-(len%4); // Round by 32 bit
-
             templates[tId] = { len: len, list: list };
             buf = buf.slice(4+cnt*4);
         }
     }
 
-    function decodeTemplate(buf) {
-        var fsId = buf.readUInt16BE(0);
-        // var len = buf.readUInt16BE(2);
+    function decodeTemplate(fsId,buf) {
         var t = templates[fsId].list;
         var o = {};
         var n,i,z,nf;
-        for (i=0, n=4; i<t.length;i++, n+=z.len) {
+        for (i=0, n=0; i<t.length;i++, n+=z.len) {
             z=t[i];
             nf = nfTypes[z.type];
-            if (nf)
-                o[nf.name] = nf.decode(buf.slice(n), z.len);
-            else
-                console.log('Unknown NF Type', z);
+            if (nf) o[nf.name] = nf.decode(buf.slice(n), z.len);
+            else console.log('Unknown NF Type', z);
         }
+        o.fsId = fsId;
         return o;
     }
 
@@ -234,10 +229,10 @@ function nfPktDecode(msg,templates) {
         var len = buf.readUInt16BE(2);
         if (fsId==0) readTemplate(buf);
         if (typeof templates[fsId] != 'undefined') {
-            out.flows.push(decodeTemplate(buf));
-            if (len+4 != templates[fsId].len) {
-                console.log('Error! Broken NetFlowv9 packet! The template length is',templates[fsId].len,'while the router report it to be',len);
-                len = 4 + templates[fsId].len;
+            var tbuf = buf.slice(4,len);
+            while(tbuf.length>=templates[fsId].len) {
+                out.flows.push(decodeTemplate(fsId,buf));
+                tbuf = tbuf.slice(templates[fsId].len);
             }
         }
         buf = buf.slice(len);
