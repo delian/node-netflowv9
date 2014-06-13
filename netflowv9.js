@@ -176,7 +176,7 @@ function nfPktDecode(msg,templates) {
 
     function compileTemplate(list) {
         var i, z, nf, n;
-        var f = "var o = {}";
+        var f = "var o = {};\n";
         for (i=0,n=0;i<list.length;i++,n+=z.len) {
             z=list[i];
             nf = nfTypes[z.type];
