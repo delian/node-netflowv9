@@ -231,7 +231,7 @@ function nfPktDecode(msg,templates) {
         if (typeof templates[fsId] != 'undefined') {
             var tbuf = buf.slice(4,len);
             while(tbuf.length>=templates[fsId].len) {
-                out.flows.push(decodeTemplate(fsId,buf));
+                out.flows.push(decodeTemplate(fsId,tbuf));
                 tbuf = tbuf.slice(templates[fsId].len);
             }
         }
