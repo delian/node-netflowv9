@@ -199,7 +199,7 @@ function nfPktDecode(msg,templates) {
             f+="o['"+nf.name+"']="+compileStatement(z.type, n, z.len)+";\n";
         }
         f+="return o;\n";
-        console.log('The template will be compiled to',f);
+        //console.log('The template will be compiled to',f);
         return new Function('buf','nfTypes',f);
     }
 
@@ -223,17 +223,6 @@ function nfPktDecode(msg,templates) {
     }
 
     function decodeTemplate(fsId,buf) {
-        /*
-        var t = templates[fsId].list;
-        var o = {};
-        var n,i,z,nf;
-        for (i=0, n=0; i<t.length;i++, n+=z.len) {
-            z=t[i];
-            nf = nfTypes[z.type];
-            if (nf) o[nf.name] = nf.decode(buf.slice(n), z.len);
-            else console.log('Unknown NF Type', z);
-        }
-        */
         var o = templates[fsId].compiled(buf,nfTypes);
         o.fsId = fsId;
         return o;
