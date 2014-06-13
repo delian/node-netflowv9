@@ -4,28 +4,28 @@
 
 var dgram = require('dgram');
 
-function decNumber(buf,len) {
+function decNumber(buf,pos,len) {
     switch (len) {
         case 1:
-            return buf.readUInt8(0);
+            return buf.readUInt8(pos);
             break;
         case 2:
-            return buf.readUInt16BE(0);
+            return buf.readUInt16BE(pos);
             break;
         case 3:
-            return buf.readUInt8(0)*65536+buf.readUInt16BE(1);
+            return buf.readUInt8(pos)*65536+buf.readUInt16BE(pos+1);
             break;
         case 4:
-            return buf.readUInt32BE(0);
+            return buf.readUInt32BE(pos);
             break;
         case 5:
-            return buf.readUInt8(0)*4294967296+buf.readUInt32BE(1);
+            return buf.readUInt8(pos)*4294967296+buf.readUInt32BE(pos+1);
             break;
         case 6:
-            return buf.readUInt16BE(0)*4294967296+buf.readUInt32BE(2);
+            return buf.readUInt16BE(pos)*4294967296+buf.readUInt32BE(pos+2);
             break;
         case 8:
-            return buf.readUInt32BE(0)*4294967296+buf.readUInt32BE(4);
+            return buf.readUInt32BE(pos)*4294967296+buf.readUInt32BE(pos+4);
             break;
         default:
             console.log('Unknown len',len);
@@ -33,150 +33,126 @@ function decNumber(buf,len) {
     return 0;
 }
 
+function decIpv4Num(buf,pos,len) {
+    var ip = buf.readUInt32BE(pos);
+    return (parseInt(ip/16777216)%256)+"."+(parseInt(ip/65536)%256)+"."+(parseInt(ip/256)%256)+"."+(ip%256);
+}
+
+function decIpv6Num(buf,pos,len) {
+    return buf.toString('hex',pos,len);
+}
+
+function decEthMac(buf,pos,len) {
+    return buf.toString('hex',pos,len);
+}
+
+function decString(buf,pos,len) {
+    return buf.toString('utf8',pos,len);
+}
+
+var decNumRule = {
+    1: "buf.readUInt8($pos)",
+    2: "buf.readUInt16BE($pos)",
+    3: "buf.readUInt8($pos)*65536+buf.readUInt16BE($pos+1)",
+    4: "buf.readUInt32BE($pos)",
+    5: "buf.readUInt8($pos)*4294967296+buf.readUInt32BE($pos+1)",
+    6: "buf.readUInt16BE($pos)*4294967296+buf.readUInt32BE($pos+2)",
+    8: "buf.readUInt32BE($pos)*4294967296+buf.readUInt32BE($pos+4)"
+};
+
 var nfTypes = {
-     '1': { name: 'in_bytes', len: 4, decode: decNumber },
-     '2': { name: 'in_pkts', len: 4, decode: decNumber },
-     '3': { name: 'flows', len: 4, decode: decNumber },
-     '4': { name: 'protocol', len: 1, decode: decNumber },
-     '5': { name: 'src_tos', len: 1, decode: decNumber },
-     '6': { name: 'tcp_flags', len: 1, decode: decNumber },
-     '7': { name: 'l4_src_port', len: 2, decode: decNumber },
-     '8': { name: 'ipv4_src_addr', len: 4, decode: function(buf,len) {
-         var ip = buf.readUInt32BE(0);
-         return (parseInt(ip/16777216)%256)+"."+(parseInt(ip/65536)%256)+"."+(parseInt(ip/256)%256)+"."+(ip%256);
-     }},
-     '9': { name: 'src_mask', len: 1, decode: decNumber },
-    '10': { name: 'input_snmp', len: 2, decode: decNumber },
-    '11': { name: 'l4_dst_port', len: 2, decode: decNumber },
-    '12': { name: 'ipv4_dst_addr', len: 4, decode: function(buf,len) {
-        var ip = buf.readUInt32BE(0);
-        return (parseInt(ip/16777216)%256)+"."+(parseInt(ip/65536)%256)+"."+(parseInt(ip/256)%256)+"."+(ip%256);
-    }},
-    '13': { name: 'dst_mask', len: 1, decode: decNumber },
-    '14': { name: 'output_snmp', len: 2, decode: decNumber },
-    '15': { name: 'ipv4_next_hop', len: 4, decode: function(buf,len) {
-        var ip = buf.readUInt32BE(0);
-        return (parseInt(ip/16777216)%256)+"."+(parseInt(ip/65536)%256)+"."+(parseInt(ip/256)%256)+"."+(ip%256);
-    }},
-    '16': { name: 'src_as', len: 2, decode: decNumber },
-    '17': { name: 'dst_as', len: 2, decode: decNumber },
-    '18': { name: 'bgp_ipv4_next_hop', len: 4, decode: function(buf,len) {
-        var ip = buf.readUInt32BE(0);
-        return (parseInt(ip/16777216)%256)+"."+(parseInt(ip/65536)%256)+"."+(parseInt(ip/256)%256)+"."+(ip%256);
-    }},
-    '19': { name: 'mul_dst_pkts', len: 4, decode: decNumber },
-    '20': { name: 'mul_dst_bytes', len: 4, decode: decNumber },
-    '21': { name: 'last_switched', len: 4, decode: decNumber },
-    '22': { name: 'first_switched', len: 4, decode: decNumber },
-    '23': { name: 'out_bytes', len: 4, decode: decNumber },
-    '24': { name: 'out_pkts', len: 4, decode: decNumber },
-    '25': { name: 'min_pkt_lngth', len: 2, decode: decNumber },
-    '26': { name: 'max_pkt_lngth', len: 2, decode: decNumber },
-    '27': { name: 'ipv6_src_addr', len: 16, decode: function(buf,len) {
-        return buf.toString('hex',0,len);
-    }},
-    '28': { name: 'ipv6_dst_addr', len: 16, decode: function(buf,len) {
-        return buf.toString('hex',0,len);
-    }},
-    '29': { name: 'ipv6_src_mask', len: 1, decode: decNumber },
-    '30': { name: 'ipv6_dst_mask', len: 1, decode: decNumber },
-    '31': { name: 'ipv6_flow_label', len: 3, decode: decNumber },
-    '32': { name: 'icmp_type', len: 2, decode: decNumber },
-    '33': { name: 'mul_igmp_type', len: 1, decode: decNumber },
-    '34': { name: 'sampling_interval', len: 4, decode: decNumber },
-    '35': { name: 'sampling_algorithm', len: 1, decode: decNumber },
-    '36': { name: 'flow_active_timeout', len: 2, decode: decNumber },
-    '37': { name: 'flow_inactive_timeout', len: 2, decode: decNumber },
-    '38': { name: 'engine_type', len: 1, decode: decNumber },
-    '39': { name: 'engine_id', len: 1, decode: decNumber },
-    '40': { name: 'total_bytes_exp', len: 4, decode: decNumber },
-    '41': { name: 'total_pkts_exp', len: 4, decode: decNumber },
-    '42': { name: 'total_flows_exp', len: 4, decode: decNumber },
-    '44': { name: 'ipv4_src_prefix', len: 4, decode: function(buf,len) {
-        var ip = buf.readUInt32BE(0);
-        return (parseInt(ip/16777216)%256)+"."+(parseInt(ip/65536)%256)+"."+(parseInt(ip/256)%256)+"."+(ip%256);
-    }},
-    '45': { name: 'ipv4_dst_prefix', len: 4, decode: function(buf,len) {
-        var ip = buf.readUInt32BE(0);
-        return (parseInt(ip/16777216)%256)+"."+(parseInt(ip/65536)%256)+"."+(parseInt(ip/256)%256)+"."+(ip%256);
-    }},
+     '1': { name: 'in_bytes', len: 4, decode: decNumber, compileRule: decNumRule },
+     '2': { name: 'in_pkts', len: 4, decode: decNumber, compileRule: decNumRule },
+     '3': { name: 'flows', len: 4, decode: decNumber, compileRule: decNumRule },
+     '4': { name: 'protocol', len: 1, decode: decNumber, compileRule: decNumRule },
+     '5': { name: 'src_tos', len: 1, decode: decNumber, compileRule: decNumRule },
+     '6': { name: 'tcp_flags', len: 1, decode: decNumber, compileRule: decNumRule },
+     '7': { name: 'l4_src_port', len: 2, decode: decNumber, compileRule: decNumRule },
+     '8': { name: 'ipv4_src_addr', len: 4, decode: decIpv4Num },
+     '9': { name: 'src_mask', len: 1, decode: decNumber, compileRule: decNumRule },
+    '10': { name: 'input_snmp', len: 2, decode: decNumber, compileRule: decNumRule },
+    '11': { name: 'l4_dst_port', len: 2, decode: decNumber, compileRule: decNumRule },
+    '12': { name: 'ipv4_dst_addr', len: 4, decode: decIpv4Num },
+    '13': { name: 'dst_mask', len: 1, decode: decNumber, compileRule: decNumRule },
+    '14': { name: 'output_snmp', len: 2, decode: decNumber, compileRule: decNumRule },
+    '15': { name: 'ipv4_next_hop', len: 4, decode: decIpv4Num },
+    '16': { name: 'src_as', len: 2, decode: decNumber, compileRule: decNumRule },
+    '17': { name: 'dst_as', len: 2, decode: decNumber, compileRule: decNumRule },
+    '18': { name: 'bgp_ipv4_next_hop', len: 4, decode: decIpv4Num },
+    '19': { name: 'mul_dst_pkts', len: 4, decode: decNumber, compileRule: decNumRule },
+    '20': { name: 'mul_dst_bytes', len: 4, decode: decNumber, compileRule: decNumRule },
+    '21': { name: 'last_switched', len: 4, decode: decNumber, compileRule: decNumRule },
+    '22': { name: 'first_switched', len: 4, decode: decNumber, compileRule: decNumRule },
+    '23': { name: 'out_bytes', len: 4, decode: decNumber, compileRule: decNumRule },
+    '24': { name: 'out_pkts', len: 4, decode: decNumber, compileRule: decNumRule },
+    '25': { name: 'min_pkt_lngth', len: 2, decode: decNumber, compileRule: decNumRule },
+    '26': { name: 'max_pkt_lngth', len: 2, decode: decNumber, compileRule: decNumRule },
+    '27': { name: 'ipv6_src_addr', len: 16, decode: decIpv6Num },
+    '28': { name: 'ipv6_dst_addr', len: 16, decode: decIpv6Num },
+    '29': { name: 'ipv6_src_mask', len: 1, decode: decNumber, compileRule: decNumRule },
+    '30': { name: 'ipv6_dst_mask', len: 1, decode: decNumber, compileRule: decNumRule },
+    '31': { name: 'ipv6_flow_label', len: 3, decode: decNumber, compileRule: decNumRule },
+    '32': { name: 'icmp_type', len: 2, decode: decNumber, compileRule: decNumRule },
+    '33': { name: 'mul_igmp_type', len: 1, decode: decNumber, compileRule: decNumRule },
+    '34': { name: 'sampling_interval', len: 4, decode: decNumber, compileRule: decNumRule },
+    '35': { name: 'sampling_algorithm', len: 1, decode: decNumber, compileRule: decNumRule },
+    '36': { name: 'flow_active_timeout', len: 2, decode: decNumber, compileRule: decNumRule },
+    '37': { name: 'flow_inactive_timeout', len: 2, decode: decNumber, compileRule: decNumRule },
+    '38': { name: 'engine_type', len: 1, decode: decNumber, compileRule: decNumRule },
+    '39': { name: 'engine_id', len: 1, decode: decNumber, compileRule: decNumRule },
+    '40': { name: 'total_bytes_exp', len: 4, decode: decNumber, compileRule: decNumRule },
+    '41': { name: 'total_pkts_exp', len: 4, decode: decNumber, compileRule: decNumRule },
+    '42': { name: 'total_flows_exp', len: 4, decode: decNumber, compileRule: decNumRule },
+    '44': { name: 'ipv4_src_prefix', len: 4, decode: decIpv4Num },
+    '45': { name: 'ipv4_dst_prefix', len: 4, decode: decIpv4Num },
     '46': { name: 'mpls_top_label_type', len: 1, decode: decNumber },
-    '47': { name: 'mpls_top_label_ip_addr', len: 4, decode: function(buf,len) {
-        var ip = buf.readUInt32BE(0);
-        return (parseInt(ip/16777216)%256)+"."+(parseInt(ip/65536)%256)+"."+(parseInt(ip/256)%256)+"."+(ip%256);
-    }},
-    '48': { name: 'flow_sampler_id', len: 1, decode: decNumber },
-    '49': { name: 'flow_sampler_mode', len: 1, decode: decNumber },
-    '50': { name: 'flow_sampler_random_interval', len: 4, decode: decNumber },
-    '52': { name: 'min_ttl', len: 1, decode: decNumber },
-    '53': { name: 'max_ttl', len: 1, decode: decNumber },
-    '54': { name: 'ipv4_ident', len: 2, decode: decNumber },
-    '55': { name: 'dst_tos', len: 1, decode: decNumber },
-    '56': { name: 'in_src_mac', len: 6, decode: function(buf,len) {
-        return buf.toString('hex',0,len);
-    }},
-    '57': { name: 'out_dst_mac', len: 6, decode: function(buf,len) {
-        return buf.toString('hex',0,len);
-    }},
-    '58': { name: 'src_vlan', len: 2, decode: decNumber },
-    '59': { name: 'dst_vlan', len: 2, decode: decNumber },
-    '60': { name: 'ip_protocol_version', len: 1, decode: decNumber },
-    '61': { name: 'direction', len: 1, decode: decNumber },
-    '62': { name: 'ipv6_next_hop', len: 16, decode: function(buf,len) {
-        return buf.toString('hex',0,len);
-    }},
-    '63': { name: 'bpg_ipv6_next_hop', len: 16, decode: function(buf,len) {
-        return buf.toString('hex',0,len);
-    }},
-    '64': { name: 'ipv6_option_headers', len: 4, decode: decNumber },
-    '70': { name: 'mpls_label_1', len: 3, decode: decNumber },
-    '71': { name: 'mpls_label_2', len: 3, decode: decNumber },
-    '72': { name: 'mpls_label_3', len: 3, decode: decNumber },
-    '73': { name: 'mpls_label_4', len: 3, decode: decNumber },
-    '74': { name: 'mpls_label_5', len: 3, decode: decNumber },
-    '75': { name: 'mpls_label_6', len: 3, decode: decNumber },
-    '76': { name: 'mpls_label_7', len: 3, decode: decNumber },
-    '77': { name: 'mpls_label_8', len: 3, decode: decNumber },
-    '78': { name: 'mpls_label_9', len: 3, decode: decNumber },
-    '79': { name: 'mpls_label_10', len: 3, decode: decNumber },
-    '80': { name: 'in_dst_mac', len: 6, decode: function(buf,len) {
-        return buf.toString('hex',0,len);
-    }},
-    '81': { name: 'out_src_mac', len: 6, decode: function(buf,len) {
-        return buf.toString('hex',0,len);
-    }},
-    '82': { name: 'if_name', len: 2, decode: function(buf,len) {
-        return buf.toString('utf8',0,len);
-    }},
-    '83': { name: 'if_desc', len: 4, decode: function(buf,len) {
-        return buf.toString('utf8',0,len);
-    }},
-    '84': { name: 'sampler_name', len: 4, decode: function(buf,len) {
-        return buf.toString('utf8',0,len);
-    }},
-    '85': { name: 'in_permanent_bytes', len: 4, decode: decNumber },
-    '86': { name: 'in_permanent_pkts', len: 4, decode: decNumber },
-    '88': { name: 'fragment_offset', len: 2, decode: decNumber },
-    '89': { name: 'fw_status', len: 1, decode: decNumber },
-    '90': { name: 'mpls_pal_rd', len: 8, decode: function(buf,len) {
-        return decNumber(buf,len);
-    }},
-    '91': { name: 'mpls_prefix_len', len: 1, decode: decNumber },
-    '92': { name: 'src_traffic_index', len: 4, decode: decNumber },
-    '93': { name: 'dst_traffic_index', len: 4, decode: decNumber },
-    '94': { name: 'application_descr', len: 4, decode: function(buf,len) {
-        return buf.toString('utf8',0,len);
-    }},
-    '95': { name: 'application_tag', len: 4, decode: function(buf,len) {
-        return buf.slice(0,len);
-    }},
-    '96': { name: 'application_name', len: 4, decode: function(buf,len) {
-        return buf.toString('utf8',0,len);
-    }},
-    '98': { name: 'DiffServCodePoint', len: 1, decode: decNumber },
-    '99': { name: 'replication_factor', len: 4, decode: decNumber },
-    '128': { name: 'in_as', len: 4, decode: decNumber },
-    '129': { name: 'out_as', len: 4, decode: decNumber }
+    '47': { name: 'mpls_top_label_ip_addr', len: 4, decode: decIpv4Num },
+    '48': { name: 'flow_sampler_id', len: 1, decode: decNumber, compileRule: decNumRule },
+    '49': { name: 'flow_sampler_mode', len: 1, decode: decNumber, compileRule: decNumRule },
+    '50': { name: 'flow_sampler_random_interval', len: 4, decode: decNumber, compileRule: decNumRule },
+    '52': { name: 'min_ttl', len: 1, decode: decNumber, compileRule: decNumRule },
+    '53': { name: 'max_ttl', len: 1, decode: decNumber, compileRule: decNumRule },
+    '54': { name: 'ipv4_ident', len: 2, decode: decNumber, compileRule: decNumRule },
+    '55': { name: 'dst_tos', len: 1, decode: decNumber, compileRule: decNumRule },
+    '56': { name: 'in_src_mac', len: 6, decode: decEthMac },
+    '57': { name: 'out_dst_mac', len: 6, decode: decEthMac },
+    '58': { name: 'src_vlan', len: 2, decode: decNumber, compileRule: decNumRule },
+    '59': { name: 'dst_vlan', len: 2, decode: decNumber, compileRule: decNumRule },
+    '60': { name: 'ip_protocol_version', len: 1, decode: decNumber, compileRule: decNumRule },
+    '61': { name: 'direction', len: 1, decode: decNumber, compileRule: decNumRule },
+    '62': { name: 'ipv6_next_hop', len: 16, decode: decIpv6Num },
+    '63': { name: 'bpg_ipv6_next_hop', len: 16, decode: decIpv6Num },
+    '64': { name: 'ipv6_option_headers', len: 4, decode: decNumber, compileRule: decNumRule },
+    '70': { name: 'mpls_label_1', len: 3, decode: decNumber, compileRule: decNumRule },
+    '71': { name: 'mpls_label_2', len: 3, decode: decNumber, compileRule: decNumRule },
+    '72': { name: 'mpls_label_3', len: 3, decode: decNumber, compileRule: decNumRule },
+    '73': { name: 'mpls_label_4', len: 3, decode: decNumber, compileRule: decNumRule },
+    '74': { name: 'mpls_label_5', len: 3, decode: decNumber, compileRule: decNumRule },
+    '75': { name: 'mpls_label_6', len: 3, decode: decNumber, compileRule: decNumRule },
+    '76': { name: 'mpls_label_7', len: 3, decode: decNumber, compileRule: decNumRule },
+    '77': { name: 'mpls_label_8', len: 3, decode: decNumber, compileRule: decNumRule },
+    '78': { name: 'mpls_label_9', len: 3, decode: decNumber, compileRule: decNumRule },
+    '79': { name: 'mpls_label_10', len: 3, decode: decNumber, compileRule: decNumRule },
+    '80': { name: 'in_dst_mac', len: 6, decode: decEthMac },
+    '81': { name: 'out_src_mac', len: 6, decode: decEthMac },
+    '82': { name: 'if_name', len: 2, decode: decString },
+    '83': { name: 'if_desc', len: 4, decode: decString },
+    '84': { name: 'sampler_name', len: 4, decode: decString },
+    '85': { name: 'in_permanent_bytes', len: 4, decode: decNumber, compileRule: decNumRule },
+    '86': { name: 'in_permanent_pkts', len: 4, decode: decNumber, compileRule: decNumRule },
+    '88': { name: 'fragment_offset', len: 2, decode: decNumber, compileRule: decNumRule },
+    '89': { name: 'fw_status', len: 1, decode: decNumber, compileRule: decNumRule },
+    '90': { name: 'mpls_pal_rd', len: 8, decode: decNumber, compileRule: decNumRule },
+    '91': { name: 'mpls_prefix_len', len: 1, decode: decNumber, compileRule: decNumRule },
+    '92': { name: 'src_traffic_index', len: 4, decode: decNumber, compileRule: decNumRule },
+    '93': { name: 'dst_traffic_index', len: 4, decode: decNumber, compileRule: decNumRule },
+    '94': { name: 'application_descr', len: 4, decode: decString },
+    '95': { name: 'application_tag', len: 4, decode: decEthMac },
+    '96': { name: 'application_name', len: 4, decode: decString },
+    '98': { name: 'DiffServCodePoint', len: 1, decode: decNumber, compileRule: decNumRule },
+    '99': { name: 'replication_factor', len: 4, decode: decNumber, compileRule: decNumRule },
+    '128': { name: 'in_as', len: 4, decode: decNumber, compileRule: decNumRule },
+    '129': { name: 'out_as', len: 4, decode: decNumber, compileRule: decNumRule }
 };
 
 function nfPktDecode(msg,templates) {
@@ -189,6 +165,32 @@ function nfPktDecode(msg,templates) {
     out.header.sourceId = msg.readUInt32BE(16);
     if (out.header.version!=9) return;
 
+    function compileStatement(type,pos,len) {
+        var nf = nfTypes[type];
+        if (nf.compileRule) {
+            if (nf.compileRule[len]) return nf.compileRule[len].toString().replace(/(\$pos)/g,function(n) { return pos }).replace(/(\$len)/g,function(n) { return len });
+            if (nf.compileRule[0]) return nf.compileRule[len].toString().replace(/(\$pos)/g,function(n) { return pos }).replace(/(\$len)/g,function(n) { return len });
+        }
+        return "nfTypes['"+type+"'].decode(buf,"+pos+","+len+")";
+    }
+
+    function compileTemplate(list) {
+        var i, z, nf, n;
+        var f = "var o = {}";
+        for (i=0,n=0;i<list.length;i++,n+=z.len) {
+            z=list[i];
+            nf = nfTypes[z.type];
+            if (!nf) {
+                console.log('Unknown NF type',z);
+                throw new Error('Unknown NF Type');
+            }
+            f+="o['"+nf.name+"']="+compileStatement(z.type, n, z.len)+";\n";
+        }
+        f+="return o;\n";
+        console.log('The template will be compiled to',f);
+        return new Function('buf','nfTypes',f);
+    }
+
     function readTemplate(buffer) {
         // var fsId = buffer.readUInt16BE(0);
         var len  = buffer.readUInt16BE(2);
@@ -198,18 +200,18 @@ function nfPktDecode(msg,templates) {
             var cnt  = buf.readUInt16BE(2);
             var list = [];
             var len = 0;
-            //console.log('B',buffer.length,buf.length,tId,cnt);
             for (var i = 0; i<cnt; i++) {
                 list.push({ type: buf.readUInt16BE(4+4*i), len: buf.readUInt16BE(6+4*i) });
                 len += buf.readUInt16BE(6+4*i);
             }
 
-            templates[tId] = { len: len, list: list };
+            templates[tId] = { len: len, list: list , compiled: compileTemplate(list) };
             buf = buf.slice(4+cnt*4);
         }
     }
 
     function decodeTemplate(fsId,buf) {
+        /*
         var t = templates[fsId].list;
         var o = {};
         var n,i,z,nf;
@@ -219,6 +221,8 @@ function nfPktDecode(msg,templates) {
             if (nf) o[nf.name] = nf.decode(buf.slice(n), z.len);
             else console.log('Unknown NF Type', z);
         }
+        */
+        var o = templates[fsId].compiled(buf,nfTypes);
         o.fsId = fsId;
         return o;
     }
