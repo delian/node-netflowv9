@@ -39,15 +39,15 @@ function decIpv4Num(buf,pos,len) {
 }
 
 function decIpv6Num(buf,pos,len) {
-    return buf.toString('hex',pos,len);
+    return buf.toString('hex',pos,pos+len);
 }
 
 function decEthMac(buf,pos,len) {
-    return buf.toString('hex',pos,len);
+    return buf.toString('hex',pos,pos+len);
 }
 
 function decString(buf,pos,len) {
-    return buf.toString('utf8',pos,len);
+    return buf.toString('utf8',pos,pos+len);
 }
 
 var decNumRule = {
@@ -58,6 +58,18 @@ var decNumRule = {
     5: "buf.readUInt8($pos)*4294967296+buf.readUInt32BE($pos+1)",
     6: "buf.readUInt16BE($pos)*4294967296+buf.readUInt32BE($pos+2)",
     8: "buf.readUInt32BE($pos)*4294967296+buf.readUInt32BE($pos+4)"
+};
+
+var decIpv6Rule = {
+    16: "buf.toString('hex',$pos,$pos+$len)"
+};
+
+var decMacRule = {
+    0: "buf.toString('hex',$pos,$pos+$len)"
+};
+
+var decStringRule = {
+    0: "buf.toString('utf8',$pos,$pos+$len)"
 };
 
 var nfTypes = {
@@ -87,8 +99,8 @@ var nfTypes = {
     '24': { name: 'out_pkts', len: 4, decode: decNumber, compileRule: decNumRule },
     '25': { name: 'min_pkt_lngth', len: 2, decode: decNumber, compileRule: decNumRule },
     '26': { name: 'max_pkt_lngth', len: 2, decode: decNumber, compileRule: decNumRule },
-    '27': { name: 'ipv6_src_addr', len: 16, decode: decIpv6Num },
-    '28': { name: 'ipv6_dst_addr', len: 16, decode: decIpv6Num },
+    '27': { name: 'ipv6_src_addr', len: 16, decode: decIpv6Num, compileRule: decIpv6Rule },
+    '28': { name: 'ipv6_dst_addr', len: 16, decode: decIpv6Num, compileRule: decIpv6Rule },
     '29': { name: 'ipv6_src_mask', len: 1, decode: decNumber, compileRule: decNumRule },
     '30': { name: 'ipv6_dst_mask', len: 1, decode: decNumber, compileRule: decNumRule },
     '31': { name: 'ipv6_flow_label', len: 3, decode: decNumber, compileRule: decNumRule },
@@ -114,14 +126,14 @@ var nfTypes = {
     '53': { name: 'max_ttl', len: 1, decode: decNumber, compileRule: decNumRule },
     '54': { name: 'ipv4_ident', len: 2, decode: decNumber, compileRule: decNumRule },
     '55': { name: 'dst_tos', len: 1, decode: decNumber, compileRule: decNumRule },
-    '56': { name: 'in_src_mac', len: 6, decode: decEthMac },
-    '57': { name: 'out_dst_mac', len: 6, decode: decEthMac },
+    '56': { name: 'in_src_mac', len: 6, decode: decEthMac, compileRule: decMacRule },
+    '57': { name: 'out_dst_mac', len: 6, decode: decEthMac, compileRule: decMacRule },
     '58': { name: 'src_vlan', len: 2, decode: decNumber, compileRule: decNumRule },
     '59': { name: 'dst_vlan', len: 2, decode: decNumber, compileRule: decNumRule },
     '60': { name: 'ip_protocol_version', len: 1, decode: decNumber, compileRule: decNumRule },
     '61': { name: 'direction', len: 1, decode: decNumber, compileRule: decNumRule },
-    '62': { name: 'ipv6_next_hop', len: 16, decode: decIpv6Num },
-    '63': { name: 'bpg_ipv6_next_hop', len: 16, decode: decIpv6Num },
+    '62': { name: 'ipv6_next_hop', len: 16, decode: decIpv6Num, compileRule: decIpv6Rule },
+    '63': { name: 'bpg_ipv6_next_hop', len: 16, decode: decIpv6Num, compileRule: decIpv6Rule },
     '64': { name: 'ipv6_option_headers', len: 4, decode: decNumber, compileRule: decNumRule },
     '70': { name: 'mpls_label_1', len: 3, decode: decNumber, compileRule: decNumRule },
     '71': { name: 'mpls_label_2', len: 3, decode: decNumber, compileRule: decNumRule },
@@ -133,11 +145,11 @@ var nfTypes = {
     '77': { name: 'mpls_label_8', len: 3, decode: decNumber, compileRule: decNumRule },
     '78': { name: 'mpls_label_9', len: 3, decode: decNumber, compileRule: decNumRule },
     '79': { name: 'mpls_label_10', len: 3, decode: decNumber, compileRule: decNumRule },
-    '80': { name: 'in_dst_mac', len: 6, decode: decEthMac },
-    '81': { name: 'out_src_mac', len: 6, decode: decEthMac },
-    '82': { name: 'if_name', len: 2, decode: decString },
-    '83': { name: 'if_desc', len: 4, decode: decString },
-    '84': { name: 'sampler_name', len: 4, decode: decString },
+    '80': { name: 'in_dst_mac', len: 6, decode: decEthMac, compileRule: decMacRule },
+    '81': { name: 'out_src_mac', len: 6, decode: decEthMac, compileRule: decMacRule },
+    '82': { name: 'if_name', len: 2, decode: decString, compileRule: decStringRule },
+    '83': { name: 'if_desc', len: 4, decode: decString, compileRule: decStringRule },
+    '84': { name: 'sampler_name', len: 4, decode: decString, compileRule: decStringRule },
     '85': { name: 'in_permanent_bytes', len: 4, decode: decNumber, compileRule: decNumRule },
     '86': { name: 'in_permanent_pkts', len: 4, decode: decNumber, compileRule: decNumRule },
     '88': { name: 'fragment_offset', len: 2, decode: decNumber, compileRule: decNumRule },
@@ -146,9 +158,9 @@ var nfTypes = {
     '91': { name: 'mpls_prefix_len', len: 1, decode: decNumber, compileRule: decNumRule },
     '92': { name: 'src_traffic_index', len: 4, decode: decNumber, compileRule: decNumRule },
     '93': { name: 'dst_traffic_index', len: 4, decode: decNumber, compileRule: decNumRule },
-    '94': { name: 'application_descr', len: 4, decode: decString },
-    '95': { name: 'application_tag', len: 4, decode: decEthMac },
-    '96': { name: 'application_name', len: 4, decode: decString },
+    '94': { name: 'application_descr', len: 4, decode: decString, compileRule: decStringRule },
+    '95': { name: 'application_tag', len: 4, decode: decEthMac, compileRule: decMacRule },
+    '96': { name: 'application_name', len: 4, decode: decString, compileRule: decStringRule },
     '98': { name: 'DiffServCodePoint', len: 1, decode: decNumber, compileRule: decNumRule },
     '99': { name: 'replication_factor', len: 4, decode: decNumber, compileRule: decNumRule },
     '128': { name: 'in_as', len: 4, decode: decNumber, compileRule: decNumRule },
