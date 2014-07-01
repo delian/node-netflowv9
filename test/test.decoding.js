@@ -8,18 +8,24 @@ var VYOS_PACKET = '000900070002549b53b289a200000001000000000000005c0400001500150
 
 describe('NetFlowV9', function () {
 
-    it('Class', function (done) {
+    it('should be a function', function (done) {
         expect(NetFlowV9).to.be.an('function'); //is actually a constructor
+        done();
+    });
+
+    it('should have nfPktDecode', function (done) {
         expect(NetFlowV9).to.have.property('nfPktDecode');
         done();
     });
 
-    it('nfPktDecode', function (done) {
-        var buffer = new Buffer(VYOS_PACKET, 'hex');
-        expect(buffer).to.have.length(VYOS_PACKET.length/2);
-        var r = NetFlowV9.nfPktDecode(buffer);
-        console.log("asdf", r);
-        done();
+    describe('nfPktDecode', function () {
+        it('should be able to decode vyos packet', function (done) {
+            var buffer = new Buffer(VYOS_PACKET, 'hex');
+            expect(buffer).to.have.length(VYOS_PACKET.length/2);
+            var r = NetFlowV9.nfPktDecode(buffer);
+            console.log("asdf", r);
+            done();
+        });
     });
 
 });
