@@ -169,6 +169,7 @@ var nfTypes = {
 };
 
 function nfPktDecode(msg,templates) {
+    templates = templates || {};
     var out = { header: {}, flows: [] };
     out.header.version = msg.readUInt16BE(0);
     out.header.count = msg.readUInt16BE(2);

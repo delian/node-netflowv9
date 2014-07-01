@@ -21,8 +21,10 @@ describe('NetFlowV9', function () {
     describe('nfPktDecode', function () {
         it('should be able to decode vyos packet', function (done) {
             var buffer = new Buffer(VYOS_PACKET, 'hex');
+            var templates = {};
             expect(buffer).to.have.length(VYOS_PACKET.length/2);
-            var r = NetFlowV9.nfPktDecode(buffer);
+            var r = NetFlowV9.nfPktDecode(buffer, templates);
+            console.log('templates', templates);
             console.log("asdf", r);
             done();
         });
