@@ -2,6 +2,7 @@
  * Created by delian.
  */
 
+var debug = require('debug')('NetFlowV9');
 var dgram = require('dgram');
 
 function decNumber(buf,pos,len) {
@@ -175,7 +176,10 @@ function nfPktDecode(msg,templates) {
     out.header.seconds = msg.readUInt32BE(8);
     out.header.sequence = msg.readUInt32BE(12);
     out.header.sourceId = msg.readUInt32BE(16);
-    if (out.header.version!=9) return;
+    if (out.header.version!=9) {
+        debug('bad header version %d', out.header.version);
+        return;
+    }
 
     function compileStatement(type,pos,len) {
         var nf = nfTypes[type];
@@ -250,7 +254,6 @@ function NetFlowV9(cb,flushPerPkt) {
     if (!(this instanceof NetFlowV9)) return new NetFlowV9(cb,flushPerPkt);
     var me = this;
     this.templates = {};
-    this.nfPktDecode = nfPktDecode;
     this.server = dgram.createSocket('udp4');
     this.server.on('message',function(msg, rinfo) {
         //console.log('rinfo',rinfo);
@@ -281,5 +284,7 @@ function NetFlowV9(cb,flushPerPkt) {
         },50);
     };
 }
+
+NetFlowV9.nfPktDecode = nfPktDecode;
 
 module.exports = NetFlowV9;

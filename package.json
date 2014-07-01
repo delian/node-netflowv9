@@ -24,6 +24,11 @@
     "url": "https://github.com/delian/node-netflowv9/issues"
   },
   "dependencies": {
+    "debug": "^1.0.2"
   },
-  "homepage": "https://github.com/delian/node-netflowv9"
+  "homepage": "https://github.com/delian/node-netflowv9",
+  "devDependencies": {
+    "chai": "^1.9.1",
+    "mocha": "^1.20.1"
+  }
 }
