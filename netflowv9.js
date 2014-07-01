@@ -185,7 +185,7 @@ function nfPktDecode(msg,templates) {
         var nf = nfTypes[type];
         if (nf.compileRule) {
             if (nf.compileRule[len]) return nf.compileRule[len].toString().replace(/(\$pos)/g,function(n) { return pos }).replace(/(\$len)/g,function(n) { return len });
-            if (nf.compileRule[0]) return nf.compileRule[len].toString().replace(/(\$pos)/g,function(n) { return pos }).replace(/(\$len)/g,function(n) { return len });
+            if (nf.compileRule[0]) return nf.compileRule[0].toString().replace(/(\$pos)/g,function(n) { return pos }).replace(/(\$len)/g,function(n) { return len });
         }
         return "nfTypes['"+type+"'].decode(buf,"+pos+","+len+")";
     }
