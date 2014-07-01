@@ -164,8 +164,11 @@ var nfTypes = {
     '96': { name: 'application_name', len: 4, decode: decString, compileRule: decStringRule },
     '98': { name: 'DiffServCodePoint', len: 1, decode: decNumber, compileRule: decNumRule },
     '99': { name: 'replication_factor', len: 4, decode: decNumber, compileRule: decNumRule },
+    //above 127 is in ipfix
     '128': { name: 'in_as', len: 4, decode: decNumber, compileRule: decNumRule },
-    '129': { name: 'out_as', len: 4, decode: decNumber, compileRule: decNumRule }
+    '129': { name: 'out_as', len: 4, decode: decNumber, compileRule: decNumRule },
+    //the following are taken from from http://www.iana.org/assignments/ipfix/ipfix.xhtml
+    '201': { name: 'mplsLabelStackLength', len: 4, decode: decNumber, compileRule: decNumRule } 
 };
 
 function nfPktDecode(msg,templates) {
@@ -221,7 +224,7 @@ function nfPktDecode(msg,templates) {
                 list.push({ type: buf.readUInt16BE(4+4*i), len: buf.readUInt16BE(6+4*i) });
                 len += buf.readUInt16BE(6+4*i);
             }
-
+            debug('compile template %s', tId);
             templates[tId] = { len: len, list: list , compiled: compileTemplate(list) };
             buf = buf.slice(4+cnt*4);
         }

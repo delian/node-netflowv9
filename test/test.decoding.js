@@ -24,8 +24,29 @@ describe('NetFlowV9', function () {
             var templates = {};
             expect(buffer).to.have.length(VYOS_PACKET.length/2);
             var r = NetFlowV9.nfPktDecode(buffer, templates);
-            console.log('templates', templates);
-            console.log("asdf", r);
+            expect(templates).to.have.property('1024');
+            expect(templates).to.have.property('1025');
+            expect(templates).to.have.property('2048');
+            expect(templates).to.have.property('2049');
+            expect(r).to.have.property('header');
+            expect(r).to.have.property('flows');
+
+            var header = r.header;
+            expect(header).to.have.property('version', 9);
+            expect(header).to.have.property('count', 7);
+            expect(header).to.have.property('uptime', 152731);
+            expect(header).to.have.property('seconds', 1404209570);
+            expect(header).to.have.property('sequence', 1);
+            expect(header).to.have.property('sourceId', 0);
+
+            var flows = r.flows;
+            expect(flows).to.have.length(1);
+            
+            var f1 = flows[0];
+            expect(f1).to.have.property('ipv4_src_addr', '10.100.0.84');
+            expect(f1).to.have.property('ipv4_dst_addr', '192.0.76.2');
+            expect(f1).to.have.property('in_pkts', 1);
+            //TODO:test everything
             done();
         });
     });
