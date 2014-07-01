@@ -2,6 +2,7 @@
  * Created by delian.
  */
 
+var debug = require('debug')('NetFlowV9');
 var dgram = require('dgram');
 
 function decNumber(buf,pos,len) {
@@ -163,11 +164,15 @@ var nfTypes = {
     '96': { name: 'application_name', len: 4, decode: decString, compileRule: decStringRule },
     '98': { name: 'DiffServCodePoint', len: 1, decode: decNumber, compileRule: decNumRule },
     '99': { name: 'replication_factor', len: 4, decode: decNumber, compileRule: decNumRule },
+    //above 127 is in ipfix
     '128': { name: 'in_as', len: 4, decode: decNumber, compileRule: decNumRule },
-    '129': { name: 'out_as', len: 4, decode: decNumber, compileRule: decNumRule }
+    '129': { name: 'out_as', len: 4, decode: decNumber, compileRule: decNumRule },
+    //the following are taken from from http://www.iana.org/assignments/ipfix/ipfix.xhtml
+    '201': { name: 'mplsLabelStackLength', len: 4, decode: decNumber, compileRule: decNumRule } 
 };
 
 function nfPktDecode(msg,templates) {
+    templates = templates || {};
     var out = { header: {}, flows: [] };
     out.header.version = msg.readUInt16BE(0);
     out.header.count = msg.readUInt16BE(2);
@@ -175,13 +180,16 @@ function nfPktDecode(msg,templates) {
     out.header.seconds = msg.readUInt32BE(8);
     out.header.sequence = msg.readUInt32BE(12);
     out.header.sourceId = msg.readUInt32BE(16);
-    if (out.header.version!=9) return;
+    if (out.header.version!=9) {
+        debug('bad header version %d', out.header.version);
+        return;
+    }
 
     function compileStatement(type,pos,len) {
         var nf = nfTypes[type];
         if (nf.compileRule) {
             if (nf.compileRule[len]) return nf.compileRule[len].toString().replace(/(\$pos)/g,function(n) { return pos }).replace(/(\$len)/g,function(n) { return len });
-            if (nf.compileRule[0]) return nf.compileRule[len].toString().replace(/(\$pos)/g,function(n) { return pos }).replace(/(\$len)/g,function(n) { return len });
+            if (nf.compileRule[0]) return nf.compileRule[0].toString().replace(/(\$pos)/g,function(n) { return pos }).replace(/(\$len)/g,function(n) { return len });
         }
         return "nfTypes['"+type+"'].decode(buf,"+pos+","+len+")";
     }
@@ -216,7 +224,7 @@ function nfPktDecode(msg,templates) {
                 list.push({ type: buf.readUInt16BE(4+4*i), len: buf.readUInt16BE(6+4*i) });
                 len += buf.readUInt16BE(6+4*i);
             }
-
+            debug('compile template %s', tId);
             templates[tId] = { len: len, list: list , compiled: compileTemplate(list) };
             buf = buf.slice(4+cnt*4);
         }
@@ -250,7 +258,6 @@ function NetFlowV9(cb,flushPerPkt) {
     if (!(this instanceof NetFlowV9)) return new NetFlowV9(cb,flushPerPkt);
     var me = this;
     this.templates = {};
-    this.nfPktDecode = nfPktDecode;
     this.server = dgram.createSocket('udp4');
     this.server.on('message',function(msg, rinfo) {
         //console.log('rinfo',rinfo);
@@ -281,5 +288,7 @@ function NetFlowV9(cb,flushPerPkt) {
         },50);
     };
 }
+
+NetFlowV9.nfPktDecode = nfPktDecode;
 
 module.exports = NetFlowV9;
