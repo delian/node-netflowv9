@@ -236,12 +236,31 @@ function nfPktDecode(msg,templates) {
         return o;
     }
 
+    function readOptions(buffer) {
+        var len  = buffer.readUInt16BE(2);
+        var tId = buffer.readUInt16BE(4);
+        var osLen = buffer.readUInt16BE(6);
+        var oLen = buffer.readUInt16BE(8);
+        var buf = buffer.slice(10,len-10);
+        console.log('len',len,'tId',tid,'osLen',osLen,'oLen',oLen,'buf',buf);
+        while(buf.length>0) {
+            var type  = buf.readUInt16BE(0);
+            var tlen  = buf.readUInt16BE(2);
+            console.log('type',type,'len',tlen);
+            buf = buf.slice(4);
+        }
+    }
+
     var buf = msg.slice(20);
     while(buf.length>0) {
         var fsId = buf.readUInt16BE(0);
         var len = buf.readUInt16BE(2);
         if (fsId==0) readTemplate(buf);
-        if (typeof templates[fsId] != 'undefined') {
+        if (fsId==1) readOptions(buf);
+        if (fsId>1 && fsId<256) {
+            console.log('Unknown Flowset ID!',fsId);
+        }
+        if (fsId>255 && typeof templates[fsId] != 'undefined') {
             var tbuf = buf.slice(4,len);
             while(tbuf.length>=templates[fsId].len) {
                 out.flows.push(decodeTemplate(fsId,tbuf));
