@@ -246,7 +246,7 @@ function nfPktDecode(msg,templates) {
 }
 
 function NetFlowV9(options) {
-    if (!(this instanceof NetFlowV9)) return new NetFlowV9(cb);
+    if (!(this instanceof NetFlowV9)) return new NetFlowV9(options);
     var me = this;
     this.templates = {};
     this._inbuf = [];
