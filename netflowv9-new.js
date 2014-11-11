@@ -258,11 +258,10 @@ function NetFlowV9(options) {
         if (o) { // If the packet does not contain flows, only templates we do not decode
             o.rinfo = rinfo;
             o.packet = msg;
-            this._inbuf.push(o);
+            me._inbuf.push(o);
         }
     });
     this.listen = function(port) {
-        var me = this;
         setTimeout(function() {
             me.server.bind(port);
         },50);
