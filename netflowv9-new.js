@@ -21,7 +21,7 @@ var decNumRule = {
 };
 
 var decIpv4Rule = {
-    4: "(ip=buf.readUInt32BE(pos),(parseInt(ip/16777216)%256)+'.'+(parseInt(ip/65536)%256)+'.'+(parseInt(ip/256)%256)+'.'+(ip%256))"
+    4: "(ip=buf.readUInt32BE($pos),(parseInt(ip/16777216)%256)+'.'+(parseInt(ip/65536)%256)+'.'+(parseInt(ip/256)%256)+'.'+(ip%256))"
 };
 
 var decIpv6Rule = {
