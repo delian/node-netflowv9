@@ -4,11 +4,11 @@
  * This version support only compiled code and works with streams API
  */
 
+require('debug').enable('NetFlowV9');
 var debug = require('debug')('NetFlowV9');
 var dgram = require('dgram');
 var util = require('util');
-var stream = require('stream');
-var Readable = stream.Readable;
+var e = require('events').EventEmitter;
 
 var decNumRule = {
     1: "buf.readUInt8($pos)",
@@ -21,7 +21,7 @@ var decNumRule = {
 };
 
 var decIpv4Rule = {
-    4: "(ip=buf.readUInt32BE($pos),(parseInt(ip/16777216)%256)+'.'+(parseInt(ip/65536)%256)+'.'+(parseInt(ip/256)%256)+'.'+(ip%256))"
+    4: "(t=buf.readUInt32BE($pos),(parseInt(t/16777216)%256)+'.'+(parseInt(t/65536)%256)+'.'+(parseInt(t/256)%256)+'.'+(t%256))"
 };
 
 var decIpv6Rule = {
@@ -168,7 +168,7 @@ function nfPktDecode(msg,templates) {
 
     function compileTemplate(list) {
         var i, z, nf, n;
-        var f = "var o = {};\n";
+        var f = "var o = {}; var t;\n";
         for (i = 0, n = 0; i < list.length; i++, n += z.len) {
             z = list[i];
             nf = nfTypes[z.type];
@@ -179,7 +179,7 @@ function nfPktDecode(msg,templates) {
             f += "o['" + nf.name + "']=" + compileStatement(z.type, n, z.len) + ";\n";
         }
         f += "return o;\n";
-        //console.log('The template will be compiled to',f);
+        debug('The template will be compiled to %s',f);
         return new Function('buf', 'nfTypes', f);
     }
 
@@ -214,6 +214,7 @@ function nfPktDecode(msg,templates) {
         var osLen = buffer.readUInt16BE(6);
         var oLen = buffer.readUInt16BE(8);
         var buf = buffer.slice(10, len - 10);
+        console.log('readOptions:');
         console.log('len', len, 'tId', tid, 'osLen', osLen, 'oLen', oLen, 'buf', buf);
         while (buf.length > 0) {
             var type = buf.readUInt16BE(0);
@@ -230,7 +231,7 @@ function nfPktDecode(msg,templates) {
         if (fsId == 0) readTemplate(buf);
         else if (fsId == 1) readOptions(buf);
         else if (fsId > 1 && fsId < 256) {
-            console.log('Unknown Flowset ID!', fsId);
+            debug('Unknown Flowset ID %d!', fsId);
         }
         else if (fsId > 255 && typeof templates[fsId] != 'undefined') {
             var tbuf = buf.slice(4, len);
@@ -249,17 +250,18 @@ function NetFlowV9(options) {
     if (!(this instanceof NetFlowV9)) return new NetFlowV9(options);
     var me = this;
     this.templates = {};
-    this._inbuf = [];
+    //this._inbuf = [];
+    if (options.ipv4num) decIpv4Rule[4] = "buf.readUInt32BE($pos)"; // TODO: Better code here!
     this.server = dgram.createSocket('udp4');
-    Readable.call(this,options);
+    e.call(this,options);
     this.server.on('message',function(msg,rinfo){
         if (rinfo.size<20) return;
         var o = nfPktDecode(msg,me.templates);
-        if (o) { // If the packet does not contain flows, only templates we do not decode
+        if (o && o.flows.length > 0) { // If the packet does not contain flows, only templates we do not decode
             o.rinfo = rinfo;
             o.packet = msg;
-            me._inbuf.push(o);
-        }
+            me.emit('data',o);
+        } else debug('Undecoded flows',o);
     });
     this.listen = function(port) {
         setTimeout(function() {
@@ -268,13 +270,7 @@ function NetFlowV9(options) {
     };
     if (options.port) this.listen(options.port);
 }
-util.inherits(NetFlowV9,Readable);
-
-NetFlowV9.prototype._read = function() {
-    if (this._inbuf.length == 0) return this.push('');
-    return this.push(this._inbuf.shift());
-};
-
+util.inherits(NetFlowV9,e);
 NetFlowV9.prototype.nfPktDecode = nfPktDecode;
 
 module.exports = NetFlowV9;
