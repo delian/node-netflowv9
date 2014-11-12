@@ -400,7 +400,10 @@ function NetFlowV9(options) {
     if (options.port) this.listen(options.port);
 }
 util.inherits(NetFlowV9,e);
-NetFlowV9.prototype.nfPktDecode = nf9PktDecode;
+NetFlowV9.prototype.nfPktDecode = nfPktDecode;
+NetFlowV9.prototype.nf1PktDecode = nf1PktDecode;
+NetFlowV9.prototype.nf5PktDecode = nf5PktDecode;
+NetFlowV9.prototype.nf7PktDecode = nf7PktDecode;
 NetFlowV9.prototype.nf9PktDecode = nf9PktDecode;
 
 module.exports = NetFlowV9;
