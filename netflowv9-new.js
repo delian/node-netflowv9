@@ -134,7 +134,7 @@ var nfTypes = {
     '201': {name: 'mplsLabelStackLength', len: 4, compileRule: decNumRule}
 };
 
-function nfPktDecode(msg,templates) {
+function nf9PktDecode(msg,templates) {
     templates = templates || {};
     var out = {header: {}, flows: []};
     out.header.version = msg.readUInt16BE(0);
@@ -143,10 +143,6 @@ function nfPktDecode(msg,templates) {
     out.header.seconds = msg.readUInt32BE(8);
     out.header.sequence = msg.readUInt32BE(12);
     out.header.sourceId = msg.readUInt32BE(16);
-    if (out.header.version != 9) {
-        debug('bad header version %d', out.header.version);
-        return;
-    }
 
     function compileStatement(type, pos, len) {
         var nf = nfTypes[type];
@@ -208,7 +204,7 @@ function nfPktDecode(msg,templates) {
         return o;
     }
 
-    function readOptions(buffer) {
+    function readOptions(buffer) { // TODO: decode NetFlow Options Template
         var len = buffer.readUInt16BE(2);
         var tId = buffer.readUInt16BE(4);
         var osLen = buffer.readUInt16BE(6);
@@ -246,6 +242,139 @@ function nfPktDecode(msg,templates) {
     return out;
 }
 
+function nf1PktDecode(msg) {
+    var out = { header: {
+        version: msg.readUInt16BE(0),
+        count: msg.readUInt16BE(2),
+        uptime: msg.readUInt32BE(4),
+        seconds: msg.readUInt32BE(8),
+        nseconds: msg.readUInt32BE(12)
+    }, flows: []};
+    var buf = msg.slice(16);
+    var t;
+    while(buf.length>0) {
+        out.flows.push({
+            srcaddr: (t=buf.readUInt32BE(0),(parseInt(t/16777216)%256)+'.'+(parseInt(t/65536)%256)+'.'+(parseInt(t/256)%256)+'.'+(t%256)),
+            dstaddr: (t=buf.readUInt32BE(4),(parseInt(t/16777216)%256)+'.'+(parseInt(t/65536)%256)+'.'+(parseInt(t/256)%256)+'.'+(t%256)),
+            nexthop: (t=buf.readUInt32BE(8),(parseInt(t/16777216)%256)+'.'+(parseInt(t/65536)%256)+'.'+(parseInt(t/256)%256)+'.'+(t%256)),
+            input: buf.readUInt16BE(12),
+            output: buf.readUInt16BE(14),
+            dPkts: buf.readUInt32BE(16),
+            dOctets: buf.readUInt32BE(20),
+            first: buf.readUInt32BE(24),
+            last: buf.readUInt32BE(28),
+            srcport: buf.readUInt16BE(32),
+            dstport: buf.readUInt16BE(34),
+            prot: buf.readUInt8(38),
+            tos: buf.readUInt8(39),
+            tcp_flags: buf.readUInt8(40)
+        });
+        buf = buf.slice(48);
+    }
+    return out;
+}
+
+function nf5PktDecode(msg) {
+    var out = { header: {
+        version: msg.readUInt16BE(0),
+        count: msg.readUInt16BE(2),
+        uptime: msg.readUInt32BE(4),
+        seconds: msg.readUInt32BE(8),
+        nseconds: msg.readUInt32BE(12),
+        sequence: msg.readUInt32BE(16),
+        engine_type: msg.readUInt8(20),
+        engine_id: msg.readUInt8(21),
+        sampling_interval: msg.readUInt16BE(22)
+    }, flows: []};
+    var buf = msg.slice(24);
+    var t;
+    while(buf.length>0) {
+        out.flows.push({
+            srcaddr: (t=buf.readUInt32BE(0),(parseInt(t/16777216)%256)+'.'+(parseInt(t/65536)%256)+'.'+(parseInt(t/256)%256)+'.'+(t%256)),
+            dstaddr: (t=buf.readUInt32BE(4),(parseInt(t/16777216)%256)+'.'+(parseInt(t/65536)%256)+'.'+(parseInt(t/256)%256)+'.'+(t%256)),
+            nexthop: (t=buf.readUInt32BE(8),(parseInt(t/16777216)%256)+'.'+(parseInt(t/65536)%256)+'.'+(parseInt(t/256)%256)+'.'+(t%256)),
+            input: buf.readUInt16BE(12),
+            output: buf.readUInt16BE(14),
+            dPkts: buf.readUInt32BE(16),
+            dOctets: buf.readUInt32BE(20),
+            first: buf.readUInt32BE(24),
+            last: buf.readUInt32BE(28),
+            srcport: buf.readUInt16BE(32),
+            dstport: buf.readUInt16BE(34),
+            tcp_flags: buf.readUInt8(37),
+            prot: buf.readUInt8(38),
+            tos: buf.readUInt8(39),
+            src_as: buf.readUInt16BE(40),
+            dst_as: buf.readUInt16BE(42),
+            src_mask: buf.readUInt8(44),
+            dst_mask: buf.readUInt8(45)
+        });
+        buf = buf.slice(48);
+    }
+    return out;
+}
+
+function nf7PktDecode(msg) {
+    var out = { header: {
+        version: msg.readUInt16BE(0),
+        count: msg.readUInt16BE(2),
+        uptime: msg.readUInt32BE(4),
+        seconds: msg.readUInt32BE(8),
+        nseconds: msg.readUInt32BE(12),
+        sequence: msg.readUInt32BE(16)
+    }, flows: []};
+    var buf = msg.slice(24);
+    var t;
+    while(buf.length>0) {
+        out.flows.push({
+            srcaddr: (t=buf.readUInt32BE(0),(parseInt(t/16777216)%256)+'.'+(parseInt(t/65536)%256)+'.'+(parseInt(t/256)%256)+'.'+(t%256)),
+            dstaddr: (t=buf.readUInt32BE(4),(parseInt(t/16777216)%256)+'.'+(parseInt(t/65536)%256)+'.'+(parseInt(t/256)%256)+'.'+(t%256)),
+            nexthop: (t=buf.readUInt32BE(8),(parseInt(t/16777216)%256)+'.'+(parseInt(t/65536)%256)+'.'+(parseInt(t/256)%256)+'.'+(t%256)),
+            input: buf.readUInt16BE(12),
+            output: buf.readUInt16BE(14),
+            dPkts: buf.readUInt32BE(16),
+            dOctets: buf.readUInt32BE(20),
+            first: buf.readUInt32BE(24),
+            last: buf.readUInt32BE(28),
+            srcport: buf.readUInt16BE(32),
+            dstport: buf.readUInt16BE(34),
+            flags: buf.readUInt8(36),
+            tcp_flags: buf.readUInt8(37),
+            prot: buf.readUInt8(38),
+            tos: buf.readUInt8(39),
+            src_as: buf.readUInt16BE(40),
+            dst_as: buf.readUInt16BE(42),
+            src_mask: buf.readUInt8(44),
+            dst_mask: buf.readUInt8(45),
+            flow_flags: buf.readUInt16BE(46),
+            router_sc: (t=buf.readUInt32BE(48),(parseInt(t/16777216)%256)+'.'+(parseInt(t/65536)%256)+'.'+(parseInt(t/256)%256)+'.'+(t%256))
+        });
+        buf = buf.slice(48);
+    }
+    return out;
+}
+
+function nfPktDecode(msg,template) {
+    var version = msg.readUInt16BE(0);
+    switch (version) {
+        case 1:
+            return nf1PktDecode.apply(this,arguments);
+            break;
+        case 5:
+            return nf5PktDecode.apply(this,arguments);
+            break;
+        case 7:
+            return nf7PktDecode.apply(this,arguments);
+            break;
+        case 9:
+            return nf9PktDecode.apply(this,arguments);
+            break;
+        default:
+            debug('bad header version %d', version);
+            return;
+    }
+}
+
 function NetFlowV9(options) {
     if (!(this instanceof NetFlowV9)) return new NetFlowV9(options);
     var me = this;
@@ -271,6 +400,7 @@ function NetFlowV9(options) {
     if (options.port) this.listen(options.port);
 }
 util.inherits(NetFlowV9,e);
-NetFlowV9.prototype.nfPktDecode = nfPktDecode;
+NetFlowV9.prototype.nfPktDecode = nf9PktDecode;
+NetFlowV9.prototype.nf9PktDecode = nf9PktDecode;
 
 module.exports = NetFlowV9;
