@@ -11,29 +11,29 @@ var util = require('util');
 var e = require('events').EventEmitter;
 
 var decNumRule = {
-    1: "buf.readUInt8($pos)",
-    2: "buf.readUInt16BE($pos)",
-    3: "buf.readUInt8($pos)*65536+buf.readUInt16BE($pos+1)",
-    4: "buf.readUInt32BE($pos)",
-    5: "buf.readUInt8($pos)*4294967296+buf.readUInt32BE($pos+1)",
-    6: "buf.readUInt16BE($pos)*4294967296+buf.readUInt32BE($pos+2)",
-    8: "buf.readUInt32BE($pos)*4294967296+buf.readUInt32BE($pos+4)"
+    1: "o['$name']=buf.readUInt8($pos);",
+    2: "o['$name']=buf.readUInt16BE($pos);",
+    3: "o['$name']=buf.readUInt8($pos)*65536+buf.readUInt16BE($pos+1);",
+    4: "o['$name']=buf.readUInt32BE($pos);",
+    5: "o['$name']=buf.readUInt8($pos)*4294967296+buf.readUInt32BE($pos+1);",
+    6: "o['$name']=buf.readUInt16BE($pos)*4294967296+buf.readUInt32BE($pos+2);",
+    8: "o['$name']=buf.readUInt32BE($pos)*4294967296+buf.readUInt32BE($pos+4);"
 };
 
 var decIpv4Rule = {
-    4: "(t=buf.readUInt32BE($pos),(parseInt(t/16777216)%256)+'.'+(parseInt(t/65536)%256)+'.'+(parseInt(t/256)%256)+'.'+(t%256))"
+    4: "o['$name']=(t=buf.readUInt32BE($pos),(parseInt(t/16777216)%256)+'.'+(parseInt(t/65536)%256)+'.'+(parseInt(t/256)%256)+'.'+(t%256));"
 };
 
 var decIpv6Rule = {
-    16: "buf.toString('hex',$pos,$pos+$len)"
+    16: "o['$name']=buf.toString('hex',$pos,$pos+$len);"
 };
 
 var decMacRule = {
-    0: "buf.toString('hex',$pos,$pos+$len)"
+    0: "o['$name']=buf.toString('hex',$pos,$pos+$len);"
 };
 
 var decStringRule = {
-    0: "buf.toString('utf8',$pos,$pos+$len)"
+    0: "o['$name']=buf.toString('utf8',$pos,$pos+$len);"
 };
 
 var nfTypes = {
@@ -134,29 +134,32 @@ var nfTypes = {
     '201': {name: 'mplsLabelStackLength', len: 4, compileRule: decNumRule}
 };
 
-function nf9PktDecode(msg,templates) {
-    templates = templates || {};
-    var out = {header: {}, flows: []};
-    out.header.version = msg.readUInt16BE(0);
-    out.header.count = msg.readUInt16BE(2);
-    out.header.uptime = msg.readUInt32BE(4);
-    out.header.seconds = msg.readUInt32BE(8);
-    out.header.sequence = msg.readUInt32BE(12);
-    out.header.sourceId = msg.readUInt32BE(16);
+function nf9PktDecode(msg) {
+    var templates = this.templates || {};
+    var nfTypes = this.nfTypes || {};
+    var out = { header: {
+        version: msg.readUInt16BE(0),
+        count: msg.readUInt16BE(2),
+        uptime: msg.readUInt32BE(4),
+        seconds: msg.readUInt32BE(8),
+        sequence: msg.readUInt32BE(12),
+        sourceId: msg.readUInt32BE(16)
+    }, flows: [] };
 
     function compileStatement(type, pos, len) {
         var nf = nfTypes[type];
+        var cr = null;
         if (nf.compileRule) {
-            if (nf.compileRule[len]) return nf.compileRule[len].toString().replace(/(\$pos)/g, function (n) {
-                return pos
-            }).replace(/(\$len)/g, function (n) {
-                return len
-            });
-            if (nf.compileRule[0]) return nf.compileRule[0].toString().replace(/(\$pos)/g, function (n) {
-                return pos
-            }).replace(/(\$len)/g, function (n) {
-                return len
-            });
+            cr = nf.compileRule[len] || nf.compileRule[0];
+            if (cr) {
+                return cr.toString().replace(/(\$pos)/g, function (n) {
+                    return pos
+                }).replace(/(\$len)/g, function (n) {
+                    return len
+                }).replace(/(\$name)/g, function (n) {
+                    return nf.name
+                });
+            }
         }
         debug('Unknown compile rule TYPE: %d POS: %d LEN: %d',type,pos,len);
         return "";
@@ -172,7 +175,7 @@ function nf9PktDecode(msg,templates) {
                 debug('Unknown NF type %d', z.type);
                 throw new Error('Unknown NF Type');
             }
-            f += "o['" + nf.name + "']=" + compileStatement(z.type, n, z.len) + ";\n";
+            f += compileStatement(z.type, n, z.len) + ";\n";
         }
         f += "return o;\n";
         debug('The template will be compiled to %s',f);
@@ -204,22 +207,27 @@ function nf9PktDecode(msg,templates) {
         return o;
     }
 
-    function readOptions(buffer) { // TODO: decode NetFlow Options Template
+    function readOptions(buffer) {
         var len = buffer.readUInt16BE(2);
         var tId = buffer.readUInt16BE(4);
         var osLen = buffer.readUInt16BE(6);
         var oLen = buffer.readUInt16BE(8);
         var buf = buffer.slice(10, len - 10);
-        console.log('readOptions:');
-        console.log('len', len, 'tId', tId, 'osLen', osLen, 'oLen', oLen, 'buf', buf);
+        debug('readOptions: len:%d tId:%d osLen:%d oLen:%d',len,tId,osLen,oLen,buf);
         var plen = 0;
+        var cr = "var o={ isOption: true }; var t;\n";
         while (buf.length > 0) {
             var type = buf.readUInt16BE(0);
             var tlen = buf.readUInt16BE(2);
-            console.log('type', type, 'len', tlen, 'plen', plen);
+            debug('    type: %d (%s) len: %d, plen: %d', type,nfTypes[type].name,tlen,plen);
+            cr+=compileStatement(type, plen, tlen);
             buf = buf.slice(4);
             plen += tlen;
         }
+        cr+="// option "+tId+"\n";
+        cr+="return o;";
+        debug('option template compiled to %s',cr);
+        templates[tId] = { len: plen, compiled: new Function('buf','nfTypes',cr) };
     }
 
     var buf = msg.slice(20);
@@ -237,6 +245,8 @@ function nf9PktDecode(msg,templates) {
                 out.flows.push(decodeTemplate(fsId, tbuf));
                 tbuf = tbuf.slice(templates[fsId].len);
             }
+        } else if (fsId > 255) {
+            debug('Unknown template/option data with flowset id %d',fsId);
         }
         buf = buf.slice(len);
     }
@@ -356,20 +366,20 @@ function nf7PktDecode(msg) {
     return out;
 }
 
-function nfPktDecode(msg,template) {
+function nfPktDecode(msg) {
     var version = msg.readUInt16BE(0);
     switch (version) {
         case 1:
-            return nf1PktDecode.apply(this,arguments);
+            return this.nf1PktDecode(msg);
             break;
         case 5:
-            return nf5PktDecode.apply(this,arguments);
+            return this.nf5PktDecode(msg);
             break;
         case 7:
-            return nf7PktDecode.apply(this,arguments);
+            return this.nf7PktDecode(msg);
             break;
         case 9:
-            return nf9PktDecode.apply(this,arguments);
+            return this.nf9PktDecode(msg);
             break;
         default:
             debug('bad header version %d', version);
@@ -381,13 +391,13 @@ function NetFlowV9(options) {
     if (!(this instanceof NetFlowV9)) return new NetFlowV9(options);
     var me = this;
     this.templates = {};
-    //this._inbuf = [];
+    this.nfTypes = util._extend(nfTypes); // Inherit nfTypes
     if (options.ipv4num) decIpv4Rule[4] = "buf.readUInt32BE($pos)"; // TODO: Better code here!
     this.server = dgram.createSocket('udp4');
     e.call(this,options);
     this.server.on('message',function(msg,rinfo){
         if (rinfo.size<20) return;
-        var o = nfPktDecode(msg,me.templates);
+        var o = me.nfPktDecode(msg);
         if (o && o.flows.length > 0) { // If the packet does not contain flows, only templates we do not decode
             o.rinfo = rinfo;
             o.packet = msg;
@@ -401,6 +411,7 @@ function NetFlowV9(options) {
     };
     if (options.port) this.listen(options.port);
 }
+
 util.inherits(NetFlowV9,e);
 NetFlowV9.prototype.nfPktDecode = nfPktDecode;
 NetFlowV9.prototype.nf1PktDecode = nf1PktDecode;
