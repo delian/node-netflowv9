@@ -211,12 +211,14 @@ function nf9PktDecode(msg,templates) {
         var oLen = buffer.readUInt16BE(8);
         var buf = buffer.slice(10, len - 10);
         console.log('readOptions:');
-        console.log('len', len, 'tId', tid, 'osLen', osLen, 'oLen', oLen, 'buf', buf);
+        console.log('len', len, 'tId', tId, 'osLen', osLen, 'oLen', oLen, 'buf', buf);
+        var plen = 0;
         while (buf.length > 0) {
             var type = buf.readUInt16BE(0);
             var tlen = buf.readUInt16BE(2);
-            console.log('type', type, 'len', tlen);
+            console.log('type', type, 'len', tlen, 'plen', plen);
             buf = buf.slice(4);
+            plen += tlen;
         }
     }
 
