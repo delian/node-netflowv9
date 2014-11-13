@@ -33,7 +33,7 @@ var decMacRule = {
 };
 
 var decStringRule = {
-    0: "o['$name']=buf.toString('utf8',$pos,$pos+$len).replace('\0','');"
+    0: "o['$name']=buf.toString('utf8',$pos,$pos+$len).replace('\\0','');"
 };
 
 var nfTypes = {
