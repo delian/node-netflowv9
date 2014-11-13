@@ -248,14 +248,12 @@ function nf9PktDecode(msg) {
         // Read the SCOPE
         var buf = buff.slice(0,osLen);
         while (buf.length > 3) {
-            while (buf.length > 0) {
-                type = buf.readUInt16BE(0);
-                tlen = buf.readUInt16BE(2);
-                debug('    SCOPE type: %d (%s) len: %d, plen: %d', type,nfTypes[type].name,tlen,plen);
-                if (type>0) cr+=compileScope(type, plen, tlen);
-                buf = buf.slice(4);
-                plen += tlen;
-            }
+            type = buf.readUInt16BE(0);
+            tlen = buf.readUInt16BE(2);
+            debug('    SCOPE type: %d (%s) len: %d, plen: %d', type,nfTypes[type].name,tlen,plen);
+            if (type>0) cr+=compileScope(type, plen, tlen);
+            buf = buf.slice(4);
+            plen += tlen;
         }
 
         // Read the Fields
