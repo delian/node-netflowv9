@@ -149,7 +149,7 @@ function nf9PktDecode(msg) {
     function compileStatement(type, pos, len) {
         var nf = nfTypes[type];
         var cr = null;
-        if (nf.compileRule) {
+        if (nf && nf.compileRule) {
             cr = nf.compileRule[len] || nf.compileRule[0];
             if (cr) {
                 return cr.toString().replace(/(\$pos)/g, function (n) {
@@ -208,7 +208,7 @@ function nf9PktDecode(msg) {
     }
 
     var nfScope = {
-        1: { name: 'scope_system', compileRule: decIpv6Rule },
+        1: { name: 'scope_system', compileRule: decMacRule },
         2: { name: 'scope_interface', compileRule: decStringRule },
         3: { name: 'scope_linecard', compileRule: decNumRule },
         4: { name: 'scope_netflow_cache', compileRule: decNumRule },
@@ -218,7 +218,7 @@ function nf9PktDecode(msg) {
     function compileScope(type,pos,len) {
         var nf = nfScope[type];
         var cr = null;
-        if (nf.compileRule) {
+        if (nf && nf.compileRule) {
             cr = nf.compileRule[len] || nf.compileRule[0];
             if (cr) {
                 return cr.toString().replace(/(\$pos)/g, function (n) {
