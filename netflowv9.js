@@ -134,9 +134,18 @@ var nfTypes = {
     201: {name: 'mplsLabelStackLength', compileRule: decNumRule}
 };
 
+var nfScope = {
+    1: { name: 'scope_system', compileRule: decMacRule },
+    2: { name: 'scope_interface', compileRule: decStringRule },
+    3: { name: 'scope_linecard', compileRule: decNumRule },
+    4: { name: 'scope_netflow_cache', compileRule: decNumRule },
+    5: { name: 'scope_template', compileRule: decStringRule }
+};
+
 function nf9PktDecode(msg) {
     var templates = this.templates || {};
     var nfTypes = this.nfTypes || {};
+
     var out = { header: {
         version: msg.readUInt16BE(0),
         count: msg.readUInt16BE(2),
@@ -206,14 +215,6 @@ function nf9PktDecode(msg) {
         o.fsId = fsId;
         return o;
     }
-
-    var nfScope = {
-        1: { name: 'scope_system', compileRule: decMacRule },
-        2: { name: 'scope_interface', compileRule: decStringRule },
-        3: { name: 'scope_linecard', compileRule: decNumRule },
-        4: { name: 'scope_netflow_cache', compileRule: decNumRule },
-        5: { name: 'scope_template', compileRule: decStringRule }
-    };
 
     function compileScope(type,pos,len) {
         var nf = nfScope[type];
@@ -308,19 +309,19 @@ function nf1PktDecode(msg) {
     var t;
     while(buf.length>0) {
         out.flows.push({
-            srcaddr: (t=buf.readUInt32BE(0),(parseInt(t/16777216)%256)+'.'+(parseInt(t/65536)%256)+'.'+(parseInt(t/256)%256)+'.'+(t%256)),
-            dstaddr: (t=buf.readUInt32BE(4),(parseInt(t/16777216)%256)+'.'+(parseInt(t/65536)%256)+'.'+(parseInt(t/256)%256)+'.'+(t%256)),
-            nexthop: (t=buf.readUInt32BE(8),(parseInt(t/16777216)%256)+'.'+(parseInt(t/65536)%256)+'.'+(parseInt(t/256)%256)+'.'+(t%256)),
-            input: buf.readUInt16BE(12),
-            output: buf.readUInt16BE(14),
-            dPkts: buf.readUInt32BE(16),
-            dOctets: buf.readUInt32BE(20),
-            first: buf.readUInt32BE(24),
-            last: buf.readUInt32BE(28),
-            srcport: buf.readUInt16BE(32),
-            dstport: buf.readUInt16BE(34),
-            prot: buf.readUInt8(38),
-            tos: buf.readUInt8(39),
+            ipv4_src_addr: (t=buf.readUInt32BE(0),(parseInt(t/16777216)%256)+'.'+(parseInt(t/65536)%256)+'.'+(parseInt(t/256)%256)+'.'+(t%256)),
+            ipv4_dst_addr: (t=buf.readUInt32BE(4),(parseInt(t/16777216)%256)+'.'+(parseInt(t/65536)%256)+'.'+(parseInt(t/256)%256)+'.'+(t%256)),
+            ipv4_next_hop: (t=buf.readUInt32BE(8),(parseInt(t/16777216)%256)+'.'+(parseInt(t/65536)%256)+'.'+(parseInt(t/256)%256)+'.'+(t%256)),
+            input_snmp: buf.readUInt16BE(12),
+            output_snmp: buf.readUInt16BE(14),
+            in_pkts: buf.readUInt32BE(16),
+            in_bytes: buf.readUInt32BE(20),
+            first_switched: buf.readUInt32BE(24),
+            last_switched: buf.readUInt32BE(28),
+            l4_src_port: buf.readUInt16BE(32),
+            l4_dst_port: buf.readUInt16BE(34),
+            protocol: buf.readUInt8(38),
+            src_tos: buf.readUInt8(39),
             tcp_flags: buf.readUInt8(40)
         });
         buf = buf.slice(48);
@@ -344,22 +345,22 @@ function nf5PktDecode(msg) {
     var t;
     while(buf.length>0) {
         out.flows.push({
-            srcaddr: (t=buf.readUInt32BE(0),(parseInt(t/16777216)%256)+'.'+(parseInt(t/65536)%256)+'.'+(parseInt(t/256)%256)+'.'+(t%256)),
-            dstaddr: (t=buf.readUInt32BE(4),(parseInt(t/16777216)%256)+'.'+(parseInt(t/65536)%256)+'.'+(parseInt(t/256)%256)+'.'+(t%256)),
-            nexthop: (t=buf.readUInt32BE(8),(parseInt(t/16777216)%256)+'.'+(parseInt(t/65536)%256)+'.'+(parseInt(t/256)%256)+'.'+(t%256)),
-            input: buf.readUInt16BE(12),
-            output: buf.readUInt16BE(14),
-            dPkts: buf.readUInt32BE(16),
-            dOctets: buf.readUInt32BE(20),
-            first: buf.readUInt32BE(24),
-            last: buf.readUInt32BE(28),
-            srcport: buf.readUInt16BE(32),
-            dstport: buf.readUInt16BE(34),
+            ipv4_src_addr: (t=buf.readUInt32BE(0),(parseInt(t/16777216)%256)+'.'+(parseInt(t/65536)%256)+'.'+(parseInt(t/256)%256)+'.'+(t%256)),
+            ipv4_dst_addr: (t=buf.readUInt32BE(4),(parseInt(t/16777216)%256)+'.'+(parseInt(t/65536)%256)+'.'+(parseInt(t/256)%256)+'.'+(t%256)),
+            ipv4_next_hop: (t=buf.readUInt32BE(8),(parseInt(t/16777216)%256)+'.'+(parseInt(t/65536)%256)+'.'+(parseInt(t/256)%256)+'.'+(t%256)),
+            input_snmp: buf.readUInt16BE(12),
+            output_snmp: buf.readUInt16BE(14),
+            in_pkts: buf.readUInt32BE(16),
+            in_bytes: buf.readUInt32BE(20),
+            first_switched: buf.readUInt32BE(24),
+            last_switched: buf.readUInt32BE(28),
+            ipv4_src_port: buf.readUInt16BE(32),
+            ipv4_dst_port: buf.readUInt16BE(34),
             tcp_flags: buf.readUInt8(37),
-            prot: buf.readUInt8(38),
-            tos: buf.readUInt8(39),
-            src_as: buf.readUInt16BE(40),
-            dst_as: buf.readUInt16BE(42),
+            protocol: buf.readUInt8(38),
+            src_tos: buf.readUInt8(39),
+            in_as: buf.readUInt16BE(40),
+            out_as: buf.readUInt16BE(42),
             src_mask: buf.readUInt8(44),
             dst_mask: buf.readUInt8(45)
         });
@@ -381,23 +382,23 @@ function nf7PktDecode(msg) {
     var t;
     while(buf.length>0) {
         out.flows.push({
-            srcaddr: (t=buf.readUInt32BE(0),(parseInt(t/16777216)%256)+'.'+(parseInt(t/65536)%256)+'.'+(parseInt(t/256)%256)+'.'+(t%256)),
-            dstaddr: (t=buf.readUInt32BE(4),(parseInt(t/16777216)%256)+'.'+(parseInt(t/65536)%256)+'.'+(parseInt(t/256)%256)+'.'+(t%256)),
-            nexthop: (t=buf.readUInt32BE(8),(parseInt(t/16777216)%256)+'.'+(parseInt(t/65536)%256)+'.'+(parseInt(t/256)%256)+'.'+(t%256)),
-            input: buf.readUInt16BE(12),
-            output: buf.readUInt16BE(14),
-            dPkts: buf.readUInt32BE(16),
-            dOctets: buf.readUInt32BE(20),
-            first: buf.readUInt32BE(24),
-            last: buf.readUInt32BE(28),
-            srcport: buf.readUInt16BE(32),
-            dstport: buf.readUInt16BE(34),
+            ipv4_src_addr: (t=buf.readUInt32BE(0),(parseInt(t/16777216)%256)+'.'+(parseInt(t/65536)%256)+'.'+(parseInt(t/256)%256)+'.'+(t%256)),
+            ipv4_dst_addr: (t=buf.readUInt32BE(4),(parseInt(t/16777216)%256)+'.'+(parseInt(t/65536)%256)+'.'+(parseInt(t/256)%256)+'.'+(t%256)),
+            ipv4_next_hop: (t=buf.readUInt32BE(8),(parseInt(t/16777216)%256)+'.'+(parseInt(t/65536)%256)+'.'+(parseInt(t/256)%256)+'.'+(t%256)),
+            input_snmp: buf.readUInt16BE(12),
+            output_snmp: buf.readUInt16BE(14),
+            in_pkts: buf.readUInt32BE(16),
+            in_bytes: buf.readUInt32BE(20),
+            first_switched: buf.readUInt32BE(24),
+            last_switched: buf.readUInt32BE(28),
+            l4_src_port: buf.readUInt16BE(32),
+            l4_dst_port: buf.readUInt16BE(34),
             flags: buf.readUInt8(36),
             tcp_flags: buf.readUInt8(37),
-            prot: buf.readUInt8(38),
-            tos: buf.readUInt8(39),
-            src_as: buf.readUInt16BE(40),
-            dst_as: buf.readUInt16BE(42),
+            protocol: buf.readUInt8(38),
+            src_tos: buf.readUInt8(39),
+            in_as: buf.readUInt16BE(40),
+            out_as: buf.readUInt16BE(42),
             src_mask: buf.readUInt8(44),
             dst_mask: buf.readUInt8(45),
             flow_flags: buf.readUInt16BE(46),
