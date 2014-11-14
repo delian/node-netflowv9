@@ -1,7 +1,7 @@
 node-netflowv9
 ==============
 
-NetFlow Version 9 library for Node.JS
+NetFlow Version 1,5,7,9 library for Node.JS
 
 The library is still under development, please be careful! It has been tested with Cisco IOS XR and IPv4 although it must work with IPv6 too! Please log problems in the issues section!
 
@@ -15,6 +15,12 @@ The usage of the netflowv9 collector library is very very simple. You just have 
     Collector(function(flow) {
         console.log(flow);
     }).listen(3000);
+
+or you can use it as event provider:
+
+    Collector({port: 3000}).on('data',function(flow) {
+        console.log(flow);
+    });
 
 
 The flow will be presented in a format very similar to this:
@@ -57,11 +63,12 @@ The flow will be presented in a format very similar to this:
          flow_sampler_id: 2 } }
 
 
-There will be one callback for each flow, not for each packet. If the packet contain 10 flows, there will be 10 callbacks containing each different flow.
+There will be one callback for each packet, which may contain more than one flow.
 
 You can also access a NetFlow decode function directly. Do something like this:
 
-    var netflowPktDecoder = require('node-netflowv9').nfPktDecode;
+    var netflowPktDecoder = require('node-netflowv9').nf9PktDecode;
     ....
     console.log(netflowPktDecoder(buffer))
 
+Currently we support netflow version 1, 5, 7 and 9.
