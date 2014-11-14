@@ -2,6 +2,7 @@ node-netflowv9
 ==============
 
 NetFlow Version 1,5,7,9 library for Node.JS
+NetFlow Version 10 (IPFix) is next!
 
 The library is still under development, please be careful! It has been tested with Cisco IOS XR and IPv4 although it must work with IPv6 too! Please log problems in the issues section!
 
