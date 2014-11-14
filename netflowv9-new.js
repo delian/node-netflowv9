@@ -466,5 +466,4 @@ NetFlowV9.prototype.nf1PktDecode = nf1PktDecode;
 NetFlowV9.prototype.nf5PktDecode = nf5PktDecode;
 NetFlowV9.prototype.nf7PktDecode = nf7PktDecode;
 NetFlowV9.prototype.nf9PktDecode = nf9PktDecode;
-
 module.exports = NetFlowV9;
