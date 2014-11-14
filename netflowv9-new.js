@@ -33,7 +33,7 @@ var decMacRule = {
 };
 
 var decStringRule = {
-    0: "o['$name']=buf.toString('utf8',$pos,$pos+$len).replace('\\0','');"
+    0: 'o[\'$name\']=buf.toString(\'utf8\',$pos,$pos+$len).replace(/\\0/g,\'\');'
 };
 
 var nfTypes = {
@@ -438,7 +438,8 @@ function NetFlowV9(options) {
     this.server = dgram.createSocket('udp4');
     e.call(this,options);
     var cb = null;
-    if (typeof options == 'function') cb = options;
+    if (typeof options == 'function') cb = options; else
+    if (typeof options.cb == 'function') cb = options.cb;
     this.server.on('message',function(msg,rinfo){
         if (rinfo.size<20) return;
         var o = me.nfPktDecode(msg);
