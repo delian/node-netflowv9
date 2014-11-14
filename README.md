@@ -39,7 +39,7 @@ The flow will be presented in a format very similar to this:
          port: 29471,
          size: 1452 },
       packet: Buffer <00 00 00 00 ....>
-      flow: 
+      flow: [
       { in_pkts: 3,
          in_bytes: 144,
          ipv4_src_addr: '15.23.23.37',
@@ -60,7 +60,7 @@ The flow will be presented in a format very similar to this:
          src_tos: 0,
          direction: 1,
          fw_status: 64,
-         flow_sampler_id: 2 } }
+         flow_sampler_id: 2 } } ]
 
 
 There will be one callback for each packet, which may contain more than one flow.
