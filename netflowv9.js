@@ -4,7 +4,7 @@
  * This version support only compiled code and works with streams API
  */
 
-require('debug').enable('NetFlowV9');
+//require('debug').enable('NetFlowV9');
 var debug = require('debug')('NetFlowV9');
 var dgram = require('dgram');
 var util = require('util');
