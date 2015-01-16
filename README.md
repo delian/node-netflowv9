@@ -68,7 +68,7 @@ There will be one callback for each packet, which may contain more than one flow
 
 You can also access a NetFlow decode function directly. Do something like this:
 
-    var netflowPktDecoder = require('node-netflowv9').nf9PktDecode;
+    var netflowPktDecoder = require('node-netflowv9').nfPktDecode;
     ....
     console.log(netflowPktDecoder(buffer))
 
