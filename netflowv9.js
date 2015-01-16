@@ -495,7 +495,10 @@ function nf9PktDecode(msg) {
             nf = nfTypes[z.type];
             if (!nf) {
                 debug('Unknown NF type %d', z.type);
-                throw new Error('Unknown NF Type');
+                nf = nfTypes[z.type] = {
+                    name: 'unknown_type_'+ z.type,
+                    compileRule: decMacRule
+                };
             }
             f += compileStatement(z.type, n, z.len) + ";\n";
         }
