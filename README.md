@@ -102,6 +102,8 @@ If no port is provided, then the underlying socket will not be initialized (bind
 
 **nfTypes** - defines your own decoders to NetFlow v9+ types
 
+**nfScope** - defines your own decoders to NetFlow v9+ Option Template scopes
+
 ## Define your own decoders for NetFlow v9+ types
 
 NetFlow v9 could be extended with vendor specific types and many vendors define their own. There could be no netflow collector in the world that decodes all the specific vendor types.
@@ -237,3 +239,11 @@ For example:
     Collector(function(flow) { // Collector 2 listening on port 6666
         console.log(flow);
     }).listen(6666);
+
+## NetFlowV9 Options Template
+
+NetFlowV9 support Options template, where there could be an option Flow Set that contains data for a predefined fields within a certain scope.
+This module supports the Options Template and provides the output of it as it is any other flow. The only difference is that there is a property **isOption** set to true to remind to your code, that this data has come from an Option Template.
+
+Currently the following nfScope are supported - system, interface, line_card, netflow_cache.
+You can overwrite the decoding of them, or add another the same way (and using absolutley the same format) as you overwrite nfTypes.

@@ -459,6 +459,7 @@ var nfScope = {
 function nf9PktDecode(msg) {
     var templates = this.templates || {};
     var nfTypes = this.nfTypes || {};
+    var nfScope = this.nfScope || {};
 
     var out = { header: {
         version: msg.readUInt16BE(0),
@@ -534,9 +535,14 @@ function nf9PktDecode(msg) {
     }
 
     function compileScope(type,pos,len) {
+        if (!nfScope[type]) {
+            nfScope[type] = { name: 'unknown_scope_'+type, compileRule: decMacRule };
+            debug('Unknown scope TYPE: %d POS: %d LEN: %d',type,pos,len);
+        }
+
         var nf = nfScope[type];
         var cr = null;
-        if (nf && nf.compileRule) {
+        if (nf.compileRule) {
             cr = nf.compileRule[len] || nf.compileRule[0];
             if (cr) {
                 return cr.toString().replace(/(\$pos)/g, function (n) {
@@ -752,6 +758,7 @@ function NetFlowV9(options) {
     var me = this;
     this.templates = {};
     this.nfTypes = clone(nfTypes);
+    this.nfScope = clone(nfScope);
     this.cb = null;
     this.socketType = 'udp4';
     this.port = null;
@@ -760,6 +767,7 @@ function NetFlowV9(options) {
     if (typeof options == 'object') {
         if (options.ipv4num) decIpv4Rule[4] = "o['$name']=buf.readUInt32BE($pos);";
         if (options.nfTypes) this.nfTypes = util._extend(this.nfTypes,options.nfTypes); // Inherit nfTypes
+        if (options.nfScope) this.nfScope = util._extend(this.nfScope,options.nfScope); // Inherit nfTypes
         if (options.socketType) this.socketType = options.socketType;
         if (options.port) this.port = options.port;
         e.call(this,options);
