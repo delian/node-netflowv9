@@ -7,6 +7,7 @@
 //require('debug').enable('NetFlowV9');
 var debug = require('debug')('NetFlowV9');
 var dgram = require('dgram');
+var clone = require('clone');
 var util = require('util');
 var e = require('events').EventEmitter;
 
@@ -750,31 +751,43 @@ function NetFlowV9(options) {
     if (!(this instanceof NetFlowV9)) return new NetFlowV9(options);
     var me = this;
     this.templates = {};
-    this.nfTypes = util._extend(nfTypes); // Inherit nfTypes
-    if (options.ipv4num) decIpv4Rule[4] = "o['$name']=buf.readUInt32BE($pos);";
-    this.server = dgram.createSocket('udp4');
-    e.call(this,options);
-    var cb = null;
-    if (typeof options == 'function') cb = options; else
-    if (typeof options.cb == 'function') cb = options.cb;
+    this.nfTypes = clone(nfTypes);
+    this.cb = null;
+    this.socketType = 'udp4';
+    this.port = null;
+    if (typeof options == 'function') this.cb = options; else
+    if (typeof options.cb == 'function') this.cb = options.cb;
+    if (typeof options == 'object') {
+        if (options.ipv4num) decIpv4Rule[4] = "o['$name']=buf.readUInt32BE($pos);";
+        if (options.nfTypes) this.nfTypes = util._extend(this.nfTypes,options.nfTypes); // Inherit nfTypes
+        if (options.socketType) this.socketType = options.socketType;
+        if (options.port) this.port = options.port;
+        e.call(this,options);
+    }
+
+    this.server = dgram.createSocket(this.socketType);
     this.server.on('message',function(msg,rinfo){
         if (rinfo.size<20) return;
         var o = me.nfPktDecode(msg);
         if (o && o.flows.length > 0) { // If the packet does not contain flows, only templates we do not decode
             o.rinfo = rinfo;
             o.packet = msg;
-            if (cb)
-                cb(o);
+            if (me.cb)
+                me.cb(o);
             else
                 me.emit('data',o);
         } else debug('Undecoded flows',o);
     });
-    this.listen = function(port) {
+
+    this.listen = function(port,cb) {
         setTimeout(function() {
-            me.server.bind(port);
+            if (cb)
+              me.server.bind(port,cb);
+            else
+              me.server.bind(port);
         },50);
     };
-    if (options.port) this.listen(options.port);
+    if (this.port) this.listen(options.port);
 }
 
 util.inherits(NetFlowV9,e);
