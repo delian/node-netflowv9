@@ -214,6 +214,19 @@ The following example defines a decoding for a netflow type 6789 that carry a st
 As you can see, we can also change the decoding on fly, by defining a property for that netflow type within the nfTypes property of the colObj (the Collector object).
 Next time when the NetFlow Agent send us a NetFlow Template definition containing this netflow type, the new rule will be used (the routers usually send temlpates from time to time, so even currently compiled templates are recompiled).
 
+You could also overwrite the default property names where the decoded data is written. For example:
+
+
+    var colObj = Collector(function (flow) {
+          console.log(flow)
+    });
+    colObj.listen(5000);
+
+    colObj.nfTypes[14].name = 'outputInterface';
+    colObj.nfTypes[10].name = 'inputInterface';
+
+
+
 ## Logging / Debugging the module
 
 You can use the debug module to turn on the logging, in order to debug how the library behave.
