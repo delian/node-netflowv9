@@ -185,7 +185,7 @@ You can write a code like this:
                  5: "o['$name']=buf.readUInt8($pos)*4294967296+buf.readUInt32BE($pos+1);", // This is how we decode type of length 5 to a number
                  6: "o['$name']=buf.readUInt16BE($pos)*4294967296+buf.readUInt32BE($pos+2);", // This is how we decode type of length 6 to a number
                  8: "o['$name']=buf.readUInt32BE($pos)*4294967296+buf.readUInt32BE($pos+4);", // This is how we decode type of length 8 to a number
-                 0: "o['$name']='Unsupported Length of $len'"
+                 0: "o['$name']='Unsupported Length of $len';"
              }
           }
        },
@@ -207,7 +207,7 @@ The following example defines a decoding for a netflow type 6789 that carry a st
     colObj.nfTypes[6789] = {
         name: 'vendor_string',
         compileRule: {
-            0: 'o["$name"] = buf.toString("utf8",$pos,$pos+$len)'
+            0: 'o["$name"] = buf.toString("utf8",$pos,$pos+$len);'
         }
     }
 
