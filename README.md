@@ -207,7 +207,7 @@ The following example defines a decoding for a netflow type 6789 that carry a st
     colObj.nfTypes[6789] = {
         name: 'vendor_string',
         compileRule: {
-            0: 'o["$name"] = buf.toString("utf8",$pos,$pos+$len);'
+            0: 'o["$name"] = buf.toString("utf8",$pos,$pos+$len);' // Never forget the ; at the end!
         }
     }
 
