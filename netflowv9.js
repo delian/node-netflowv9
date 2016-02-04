@@ -762,6 +762,7 @@ function NetFlowV9(options) {
     this.cb = null;
     this.socketType = 'udp4';
     this.port = null;
+    this.host = null;
     if (typeof options == 'function') this.cb = options; else
     if (typeof options.cb == 'function') this.cb = options.cb;
     if (typeof options == 'object') {
@@ -770,6 +771,7 @@ function NetFlowV9(options) {
         if (options.nfScope) this.nfScope = util._extend(this.nfScope,options.nfScope); // Inherit nfTypes
         if (options.socketType) this.socketType = options.socketType;
         if (options.port) this.port = options.port;
+        if (options.host) this.host = options.host;
         e.call(this,options);
     }
 
@@ -787,15 +789,21 @@ function NetFlowV9(options) {
         } else debug('Undecoded flows',o);
     });
 
-    this.listen = function(port,cb) {
+    this.listen = function(port,host,cb) {
         setTimeout(function() {
-            if (cb)
-              me.server.bind(port,cb);
+            if (host && typeof host === 'function')
+              me.server.bind(port,host);
+            else if (host && typeof host === 'string' && cb)
+              me.server.bind(port,host,cb);
+            else if (host && typeof host === 'string' && !cb)
+              me.server.bind(port,host);
+            else if (!host && cb)
+              me.server.bind(port, cb);
             else
               me.server.bind(port);
         },50);
     };
-    if (this.port) this.listen(options.port);
+    if (this.port) this.listen(options.port, options.host);
 }
 
 util.inherits(NetFlowV9,e);
