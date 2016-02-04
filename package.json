@@ -1,6 +1,6 @@
 {
   "name": "node-netflowv9",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "NetFlow Version 1,5,7,9 compatible library for Node.JS. It also support NetFlow v9 options template & data",
   "main": "netflowv9.js",
   "scripts": {
@@ -18,7 +18,7 @@
     "node.js",
     "javascript"
   ],
-  "author": "Delian Delchev <delian.delchev@gmail.com> (http://delian.blogspot.com/)",
+  "author": "Delian Delchev <delian.delchev@gmail.com> (http://deliantech.blogspot.com/)",
   "license": "GPLv2",
   "bugs": {
     "url": "https://github.com/delian/node-netflowv9/issues"
