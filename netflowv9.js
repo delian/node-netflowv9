@@ -456,8 +456,20 @@ var nfScope = {
     5: { name: 'scope_template', compileRule: decStringRule }
 };
 
-function nf9PktDecode(msg) {
-    var templates = this.templates || {};
+function nfInfoTemplates(rinfo) {
+    if (typeof this.templates === 'undefined') {
+        this.templates = {};
+    }
+    var templates = this.templates;
+    var id = rinfo.address + ':' + rinfo.port;
+    if (typeof templates[id] === 'undefined') {
+        this.templates[id] = {};
+    }
+    return templates[id];
+}
+
+function nf9PktDecode(msg,rinfo) {
+    var templates = this.nfInfoTemplates(rinfo);
     var nfTypes = this.nfTypes || {};
     var nfScope = this.nfScope || {};
 
@@ -522,7 +534,7 @@ function nf9PktDecode(msg) {
                 list.push({type: buf.readUInt16BE(4 + 4 * i), len: buf.readUInt16BE(6 + 4 * i)});
                 len += buf.readUInt16BE(6 + 4 * i);
             }
-            debug('compile template %s', tId);
+            debug('compile template %s for %s:%d', tId, rinfo.address, rinfo.port);
             templates[tId] = {len: len, list: list, compiled: compileTemplate(list)};
             buf = buf.slice(4 + cnt * 4);
         }
@@ -564,7 +576,7 @@ function nf9PktDecode(msg) {
         var osLen = buffer.readUInt16BE(6);
         var oLen = buffer.readUInt16BE(8);
         var buff = buffer.slice(10,len);
-        debug('readOptions: len:%d tId:%d osLen:%d oLen:%d',len,tId,osLen,oLen,buff);
+        debug('readOptions: len:%d tId:%d osLen:%d oLen:%d for %s:%d',len,tId,osLen,oLen,buff,rinfo.address,rinfo.port);
         var plen = 0;
         var cr = "var o={ isOption: true }; var t;\n";
         var type; var tlen;
@@ -612,7 +624,7 @@ function nf9PktDecode(msg) {
                 tbuf = tbuf.slice(templates[fsId].len);
             }
         } else if (fsId > 255) {
-            debug('Unknown template/option data with flowset id %d',fsId);
+            debug('Unknown template/option data with flowset id %d for %s:%d',fsId,rinfo.address,rinfo.port);
         }
         buf = buf.slice(len);
     }
@@ -620,7 +632,7 @@ function nf9PktDecode(msg) {
     return out;
 }
 
-function nf1PktDecode(msg) {
+function nf1PktDecode(msg,rinfo) {
     var out = { header: {
         version: msg.readUInt16BE(0),
         count: msg.readUInt16BE(2),
@@ -652,7 +664,7 @@ function nf1PktDecode(msg) {
     return out;
 }
 
-function nf5PktDecode(msg) {
+function nf5PktDecode(msg,rinfo) {
     var out = { header: {
         version: msg.readUInt16BE(0),
         count: msg.readUInt16BE(2),
@@ -692,7 +704,7 @@ function nf5PktDecode(msg) {
     return out;
 }
 
-function nf7PktDecode(msg) {
+function nf7PktDecode(msg,rinfo) {
     var out = { header: {
         version: msg.readUInt16BE(0),
         count: msg.readUInt16BE(2),
@@ -732,20 +744,20 @@ function nf7PktDecode(msg) {
     return out;
 }
 
-function nfPktDecode(msg) {
+function nfPktDecode(msg,rinfo) {
     var version = msg.readUInt16BE(0);
     switch (version) {
         case 1:
-            return this.nf1PktDecode(msg);
+            return this.nf1PktDecode(msg,rinfo);
             break;
         case 5:
-            return this.nf5PktDecode(msg);
+            return this.nf5PktDecode(msg,rinfo);
             break;
         case 7:
-            return this.nf7PktDecode(msg);
+            return this.nf7PktDecode(msg,rinfo);
             break;
         case 9:
-            return this.nf9PktDecode(msg);
+            return this.nf9PktDecode(msg,rinfo);
             break;
         default:
             debug('bad header version %d', version);
@@ -762,7 +774,6 @@ function NetFlowV9(options) {
     this.cb = null;
     this.socketType = 'udp4';
     this.port = null;
-    this.host = null;
     if (typeof options == 'function') this.cb = options; else
     if (typeof options.cb == 'function') this.cb = options.cb;
     if (typeof options == 'object') {
@@ -771,14 +782,13 @@ function NetFlowV9(options) {
         if (options.nfScope) this.nfScope = util._extend(this.nfScope,options.nfScope); // Inherit nfTypes
         if (options.socketType) this.socketType = options.socketType;
         if (options.port) this.port = options.port;
-        if (options.host) this.host = options.host;
         e.call(this,options);
     }
 
     this.server = dgram.createSocket(this.socketType);
     this.server.on('message',function(msg,rinfo){
         if (rinfo.size<20) return;
-        var o = me.nfPktDecode(msg);
+        var o = me.nfPktDecode(msg,rinfo);
         if (o && o.flows.length > 0) { // If the packet does not contain flows, only templates we do not decode
             o.rinfo = rinfo;
             o.packet = msg;
@@ -807,6 +817,7 @@ function NetFlowV9(options) {
 }
 
 util.inherits(NetFlowV9,e);
+NetFlowV9.prototype.nfInfoTemplates = nfInfoTemplates;
 NetFlowV9.prototype.nfPktDecode = nfPktDecode;
 NetFlowV9.prototype.nf1PktDecode = nf1PktDecode;
 NetFlowV9.prototype.nf5PktDecode = nf5PktDecode;
