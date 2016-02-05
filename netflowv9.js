@@ -42,6 +42,10 @@ var decStringRule = {
     0: 'o[\'$name\']=buf.toString(\'utf8\',$pos,$pos+$len).replace(/\\0/g,\'\');'
 };
 
+var decAsciiStringRule = {
+    0: 'o[\'$name\']=buf.toString(\'ascii\',$pos,$pos+$len).replace(/\\0/g,\'\');'
+};
+
 var nfTypes = {
     1: {name: 'in_bytes', compileRule: decNumRule},
     2: {name: 'in_pkts', compileRule: decNumRule},
@@ -445,7 +449,11 @@ var nfTypes = {
     430: {name: 'layer2FrameDeltaCount',compileRule: decNumRule},
     431: {name: 'layer2FrameTotalCount',compileRule: decNumRule},
     432: {name: 'pseudoWireDestinationIPv4Address',compileRule: decIpv4Rule},
-    433: {name: 'ignoredLayer2FrameTotalCount',compileRule: decNumRule}
+    433: {name: 'ignoredLayer2FrameTotalCount',compileRule: decNumRule},
+    33000: {name: 'inputACL', compileRule: decMacRule},
+    33001: {name: 'outputACL', compileRule: decMacRule},
+    33002: {name: 'firewallExtendedEvent', compileRule: decNumRule},
+    40000: {name: 'username', compileRule: decAsciiStringRule}
 };
 
 var nfScope = {
