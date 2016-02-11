@@ -12,7 +12,7 @@ The usage of the netflowv9 collector library is very very simple. You just have 
 
 
     var Collector = require('node-netflowv9');
-    
+
     Collector(function(flow) {
         console.log(flow);
     }).listen(3000);
@@ -27,14 +27,14 @@ or you can use it as event provider:
 The flow will be presented in a format very similar to this:
 
 
-    { header: 
+    { header:
       { version: 9,
          count: 25,
          uptime: 2452864139,
          seconds: 1401951592,
          sequence: 254138992,
          sourceId: 2081 },
-      rinfo: 
+      rinfo:
       { address: '15.21.21.13',
          family: 'IPv4',
          port: 29471,
@@ -66,6 +66,16 @@ The flow will be presented in a format very similar to this:
 
 There will be one callback for each packet, which may contain more than one flow.
 
+Additionally, you can use the collector to listen for template updates:
+
+    var collector = Collector({port: 3000});
+    collector.on('data', function(data) {
+        console.log(data);
+    });
+    collector.on('template', function(data) {
+        console.log(data);
+    });
+
 You can also access a NetFlow decode function directly. Do something like this:
 
     var netflowPktDecoder = require('node-netflowv9').nfPktDecode;
@@ -88,9 +98,21 @@ If no port is provided, then the underlying socket will not be initialized (bind
 
     Collector(function (flow) { console.log(flow) }).listen(port)
 
+**host** - binds to a particular host on the local interfaces.
+
+    Collector({ port: 5000, host: '0.0.0.0', cb: function (flow) { console.log(flow) } })
+
+**templates** - provides the default templates to be used for incoming traffic
+
+    Collector({ port: 5000, templates: { '127.0.0.1:5323': { '235': { len: 344, ...
+
 **cb** - defines a callback function to be executed for every flow. If no call back function is provided, then the collector fires 'data' event for each received flow
 
     Collector({ cb: function (flow) { console.log(flow) } }).listen(5000)
+
+**templateCb** - defines a callback function to be executed for templates. If no call back function is provided, then the collector fires 'template' event for the received templates.
+
+    Collector({ templateCb: function(data) { console.log(data) } }).listen(5000);
 
 **ipv4num** - defines that we want to receive the IPv4 ip address as a number, instead of decoded in a readable dot format
 
@@ -248,7 +270,7 @@ For example:
     Collector(function(flow) { // Collector 1 listening on port 5555
         console.log(flow);
     }).listen(5555);
-    
+
     Collector(function(flow) { // Collector 2 listening on port 6666
         console.log(flow);
     }).listen(6666);
