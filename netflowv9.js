@@ -488,10 +488,11 @@ function nf9PktDecode(msg,rinfo) {
         seconds: msg.readUInt32BE(8),
         sequence: msg.readUInt32BE(12),
         sourceId: msg.readUInt32BE(16)
-    }, flows: [], templates: {} };
+    }, flows: [] };
 
     function appendTemplate(tId) {
         var id = rinfo.address + ':' + rinfo.port;
+        out.templates = out.templates || {};
         out.templates[id] = out.templates[id] || {};
         out.templates[id][tId] = templates[tId];
     }
@@ -556,6 +557,9 @@ function nf9PktDecode(msg,rinfo) {
     }
 
     function decodeTemplate(fsId, buf) {
+        if (typeof templates[fsId].compiled !== 'function') {
+            templates[fsId].compiled = compileTemplate(templates[fsId].list);
+        }
         var o = templates[fsId].compiled(buf, nfTypes);
         o.fsId = fsId;
         return o;
@@ -821,7 +825,7 @@ function NetFlowV9(options) {
                 me.cb(o);
             else
                 me.emit('data',o);
-        } else if (o && o.templates.length > 0) {
+        } else if (o && o.templates) {
             o.rinfo = rinfo;
             o.packet = msg;
             if (me.templateCb)
