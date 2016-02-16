@@ -801,11 +801,17 @@ function NetFlowV9(options) {
         if (options.socketType) this.socketType = options.socketType;
         if (options.port) this.port = options.port;
         if (options.templates) this.templates = options.templates;
+        if (options.fwd) this.fwd = options.fwd;
         e.call(this,options);
     }
 
     this.server = dgram.createSocket(this.socketType);
     this.server.on('message',function(msg,rinfo){
+        if (me.fwd) {
+            var data = JSON.parse(msg.toString());
+            msg = new Buffer(data.buffer);
+            rinfo = data.rinfo;
+        }
         if (rinfo.size<20) return;
         var o = me.nfPktDecode(msg,rinfo);
         if (o && o.flows.length > 0) { // If the packet does not contain flows, only templates we do not decode
