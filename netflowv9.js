@@ -488,10 +488,11 @@ function nf9PktDecode(msg,rinfo) {
         seconds: msg.readUInt32BE(8),
         sequence: msg.readUInt32BE(12),
         sourceId: msg.readUInt32BE(16)
-    }, flows: [], templates: {} };
+    }, flows: [] };
 
     function appendTemplate(tId) {
         var id = rinfo.address + ':' + rinfo.port;
+        out.templates = out.templates || {};
         out.templates[id] = out.templates[id] || {};
         out.templates[id][tId] = templates[tId];
     }
@@ -556,6 +557,9 @@ function nf9PktDecode(msg,rinfo) {
     }
 
     function decodeTemplate(fsId, buf) {
+        if (typeof templates[fsId].compiled !== 'function') {
+            templates[fsId].compiled = compileTemplate(templates[fsId].list);
+        }
         var o = templates[fsId].compiled(buf, nfTypes);
         o.fsId = fsId;
         return o;
@@ -801,11 +805,17 @@ function NetFlowV9(options) {
         if (options.socketType) this.socketType = options.socketType;
         if (options.port) this.port = options.port;
         if (options.templates) this.templates = options.templates;
+        if (options.fwd) this.fwd = options.fwd;
         e.call(this,options);
     }
 
     this.server = dgram.createSocket(this.socketType);
     this.server.on('message',function(msg,rinfo){
+        if (me.fwd) {
+            var data = JSON.parse(msg.toString());
+            msg = new Buffer(data.buffer);
+            rinfo = data.rinfo;
+        }
         if (rinfo.size<20) return;
         var o = me.nfPktDecode(msg,rinfo);
         if (o && o.flows.length > 0) { // If the packet does not contain flows, only templates we do not decode
@@ -815,7 +825,7 @@ function NetFlowV9(options) {
                 me.cb(o);
             else
                 me.emit('data',o);
-        } else if (o && o.templates.length > 0) {
+        } else if (o && o.templates) {
             o.rinfo = rinfo;
             o.packet = msg;
             if (me.templateCb)
