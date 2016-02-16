@@ -488,7 +488,13 @@ function nf9PktDecode(msg,rinfo) {
         seconds: msg.readUInt32BE(8),
         sequence: msg.readUInt32BE(12),
         sourceId: msg.readUInt32BE(16)
-    }, flows: [] };
+    }, flows: [], templates: {} };
+
+    function appendTemplate(tId) {
+        var id = rinfo.address + ':' + rinfo.port;
+        out.templates[id] = out.templates[id] || {};
+        out.templates[id][tId] = templates[tId];
+    }
 
     function compileStatement(type, pos, len) {
         var nf = nfTypes[type];
@@ -544,6 +550,7 @@ function nf9PktDecode(msg,rinfo) {
             }
             debug('compile template %s for %s:%d', tId, rinfo.address, rinfo.port);
             templates[tId] = {len: len, list: list, compiled: compileTemplate(list)};
+            appendTemplate(tId);
             buf = buf.slice(4 + cnt * 4);
         }
     }
@@ -614,6 +621,7 @@ function nf9PktDecode(msg,rinfo) {
         cr+="return o;";
         debug('option template compiled to %s',cr);
         templates[tId] = { len: plen, compiled: new Function('buf','nfTypes',cr) };
+        appendTemplate(tId);
     }
 
     var buf = msg.slice(20);
@@ -780,16 +788,19 @@ function NetFlowV9(options) {
     this.nfTypes = clone(nfTypes);
     this.nfScope = clone(nfScope);
     this.cb = null;
+    this.templateCb = null;
     this.socketType = 'udp4';
     this.port = null;
     if (typeof options == 'function') this.cb = options; else
     if (typeof options.cb == 'function') this.cb = options.cb;
+    if (typeof options.templateCb == 'function') this.templateCb = options.templateCb;
     if (typeof options == 'object') {
         if (options.ipv4num) decIpv4Rule[4] = "o['$name']=buf.readUInt32BE($pos);";
         if (options.nfTypes) this.nfTypes = util._extend(this.nfTypes,options.nfTypes); // Inherit nfTypes
         if (options.nfScope) this.nfScope = util._extend(this.nfScope,options.nfScope); // Inherit nfTypes
         if (options.socketType) this.socketType = options.socketType;
         if (options.port) this.port = options.port;
+        if (options.templates) this.templates = options.templates;
         e.call(this,options);
     }
 
@@ -804,7 +815,16 @@ function NetFlowV9(options) {
                 me.cb(o);
             else
                 me.emit('data',o);
-        } else debug('Undecoded flows',o);
+        } else if (o && o.templates.length > 0) {
+            o.rinfo = rinfo;
+            o.packet = msg;
+            if (me.templateCb)
+                me.templateCb(o);
+            else
+                me.emit('template', o);
+        } else {
+            debug('Undecoded flows',o);
+        }
     });
 
     this.listen = function(port,host,cb) {
