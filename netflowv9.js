@@ -10,6 +10,7 @@ var dgram = require('dgram');
 var clone = require('clone');
 var util = require('util');
 var e = require('events').EventEmitter;
+var Dequeue = require('dequeue');
 
 var decNumRule = {
     1: "o['$name']=buf.readUInt8($pos);",
@@ -795,6 +796,7 @@ function NetFlowV9(options) {
     this.templateCb = null;
     this.socketType = 'udp4';
     this.port = null;
+    this.fifo = new Dequeue();
     if (typeof options == 'function') this.cb = options; else
     if (typeof options.cb == 'function') this.cb = options.cb;
     if (typeof options.templateCb == 'function') this.templateCb = options.templateCb;
@@ -811,33 +813,15 @@ function NetFlowV9(options) {
 
     this.server = dgram.createSocket(this.socketType);
     this.server.on('message',function(msg,rinfo){
-        if (me.fwd) {
-            var data = JSON.parse(msg.toString());
-            msg = new Buffer(data.buffer);
-            rinfo = data.rinfo;
-        }
-        if (rinfo.size<20) return;
-        var o = me.nfPktDecode(msg,rinfo);
-        if (o && o.flows.length > 0) { // If the packet does not contain flows, only templates we do not decode
-            o.rinfo = rinfo;
-            o.packet = msg;
-            if (me.cb)
-                me.cb(o);
-            else
-                me.emit('data',o);
-        } else if (o && o.templates) {
-            o.rinfo = rinfo;
-            o.packet = msg;
-            if (me.templateCb)
-                me.templateCb(o);
-            else
-                me.emit('template', o);
-        } else {
-            debug('Undecoded flows',o);
-        }
+        me.fifo.push([msg, rinfo]);
+    });
+
+    this.server.on('close', function() {
+        this.closed = true;
     });
 
     this.listen = function(port,host,cb) {
+        me.fetch();
         setTimeout(function() {
             if (host && typeof host === 'function')
               me.server.bind(port,host);
@@ -851,6 +835,43 @@ function NetFlowV9(options) {
               me.server.bind(port);
         },50);
     };
+
+    this.fetch = function() {
+        while (me.fifo.length > 0 && !this.closed) {
+            var data = me.fifo.shift();
+            var msg = data[0];
+            var rinfo = data[1];
+            if (me.fwd) {
+                var data = JSON.parse(msg.toString());
+                msg = new Buffer(data.buffer);
+                rinfo = data.rinfo;
+            }
+            if (rinfo.size<20) return;
+            var o = me.nfPktDecode(msg,rinfo);
+            if (o && o.flows.length > 0) { // If the packet does not contain flows, only templates we do not decode
+                o.rinfo = rinfo;
+                o.packet = msg;
+                if (me.cb)
+                    me.cb(o);
+                else
+                    me.emit('data',o);
+            } else if (o && o.templates) {
+                o.rinfo = rinfo;
+                o.packet = msg;
+                if (me.templateCb)
+                    me.templateCb(o);
+                else
+                    me.emit('template', o);
+            } else {
+                debug('Undecoded flows',o);
+            }
+        }
+
+        if (!this.closed) {
+            setImmediate(me.fetch);
+        }
+    };
+
     if (this.port) this.listen(options.port, options.host);
 }
 
