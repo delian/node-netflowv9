@@ -841,6 +841,7 @@ function NetFlowV9(options) {
             var data = me.fifo.shift();
             var msg = data[0];
             var rinfo = data[1];
+            var startTime = new Date().getTime();
             if (me.fwd) {
                 var data = JSON.parse(msg.toString());
                 msg = new Buffer(data.buffer);
@@ -848,9 +849,11 @@ function NetFlowV9(options) {
             }
             if (rinfo.size<20) return;
             var o = me.nfPktDecode(msg,rinfo);
+            var timeMs = (new Date().getTime()) - startTime;
             if (o && o.flows.length > 0) { // If the packet does not contain flows, only templates we do not decode
                 o.rinfo = rinfo;
                 o.packet = msg;
+                o.decodeMs = timeMs;
                 if (me.cb)
                     me.cb(o);
                 else
@@ -858,6 +861,7 @@ function NetFlowV9(options) {
             } else if (o && o.templates) {
                 o.rinfo = rinfo;
                 o.packet = msg;
+                o.decodeMs = timeMs;
                 if (me.templateCb)
                     me.templateCb(o);
                 else
