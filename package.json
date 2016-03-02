@@ -25,7 +25,8 @@
   },
   "dependencies": {
     "clone": "^1.0.0",
-    "debug": "^1.0.2"
+    "debug": "^1.0.2",
+    "dequeue": "^1.0.5"
   },
   "homepage": "https://github.com/delian/node-netflowv9",
   "devDependencies": {
