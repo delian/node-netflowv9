@@ -814,6 +814,10 @@ function NetFlowV9(options) {
     this.server = dgram.createSocket(this.socketType);
     this.server.on('message',function(msg,rinfo){
         me.fifo.push([msg, rinfo]);
+        if (!me.closed && me.set) {
+            me.set = false;
+            setImmediate(me.fetch);
+        }
     });
 
     this.server.on('close', function() {
@@ -871,9 +875,7 @@ function NetFlowV9(options) {
             }
         }
 
-        if (!this.closed) {
-            setImmediate(me.fetch);
-        }
+        me.set = true;
     };
 
     if (this.port) this.listen(options.port, options.host);
