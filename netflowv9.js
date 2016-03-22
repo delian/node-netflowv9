@@ -809,18 +809,30 @@ function NetFlowV9(options) {
         if (options.port) this.port = options.port;
         if (options.templates) this.templates = options.templates;
         if (options.fwd) this.fwd = options.fwd;
-        if (typeof options.proxy == 'object') {
+        if (typeof options.proxy == 'object' ||
+            typeof options.proxy == 'string') {
             this.proxy = [];
-            for (var k in options.proxy) {
-                var v = options.proxy[k];
-                if (typeof v == 'string') {
-                    debug('Defining proxy destination %s = %s',k,v);
-                    var m = v.match(/^(.*)(\:(\d+))$/);
-                    if (!m) continue;
+            if (typeof options.proxy == 'string') {
+                debug('Defining proxy destination %s',options.proxy);
+                var m = options.proxy.match(/^(.*)(\:(\d+))$/);
+                if (m) {
                     this.proxy.push({host: m[1], port: m[3]||5555});
                     debug('Proxy added %s:%s',m[1],m[3]||5555);
                 }
+            } else {
+                for (var k in options.proxy) {
+                    var v = options.proxy[k];
+                    if (typeof v == 'string') {
+                        debug('Defining proxy destination %s = %s',k,v);
+                        var m = v.match(/^(.*)(\:(\d+))$/);
+                        if (m) {
+                            this.proxy.push({host: m[1], port: m[3]||5555});
+                            debug('Proxy added %s:%s',m[1],m[3]||5555);
+                        }
+                    }
+                }
             }
+            
             if (this.proxy.length == 0) this.proxy = null;
         }
         e.call(this,options);
