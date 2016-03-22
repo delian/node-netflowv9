@@ -277,7 +277,34 @@ You can do that by using the proxy option in the configurations. For example:
         }
     }).listen(5555);
 
-In this example every netflow packet received at port 5555 will be resent as well to 127.0.0.1:55555
+In the example above every netflow packet received at port 5555 will be resent as well to 127.0.0.1:55555
+
+The examples bellow sends the packets to multiple destinations:
+
+    require('debug').enable('NetFlowV9');
+    var Collector = require('node-netflowv9');
+    Collector({
+        proxy: [ "127.0.0.1:55555","5.5.5.5:5566" ],
+        cb: function(flow) {
+            console.log(flow);
+        }
+    }).listen(5555);
+
+Another example for multiple destinations:
+
+    require('debug').enable('NetFlowV9');
+    var Collector = require('node-netflowv9');
+    Collector({
+        proxy: {
+          "target1": "127.0.0.1:55555",
+          "target2": "5.5.5.5:5566"
+        },
+        cb: function(flow) {
+            console.log(flow);
+        }
+    }).listen(5555);
+
+
 
 ## Multiple collectors
 
