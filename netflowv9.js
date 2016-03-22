@@ -796,6 +796,7 @@ function NetFlowV9(options) {
     this.templateCb = null;
     this.socketType = 'udp4';
     this.port = null;
+    this.proxy = null;
     this.fifo = new Dequeue();
     if (typeof options == 'function') this.cb = options; else
     if (typeof options.cb == 'function') this.cb = options.cb;
@@ -808,6 +809,20 @@ function NetFlowV9(options) {
         if (options.port) this.port = options.port;
         if (options.templates) this.templates = options.templates;
         if (options.fwd) this.fwd = options.fwd;
+        if (typeof options.proxy == 'object') {
+            this.proxy = [];
+            for (var k in options.proxy) {
+                var v = options.proxy[k];
+                if (typeof v == 'string') {
+                    debug('Defining proxy destination %s = %s',k,v);
+                    var m = v.match(/^(.*)(\:(\d+))$/);
+                    if (!m) continue;
+                    this.proxy.push({host: m[1], port: m[3]||5555});
+                    debug('Proxy added %s:%s',m[1],m[3]||5555);
+                }
+            }
+            if (this.proxy.length == 0) this.proxy = null;
+        }
         e.call(this,options);
     }
 
@@ -817,6 +832,11 @@ function NetFlowV9(options) {
         if (!me.closed && me.set) {
             me.set = false;
             setImmediate(me.fetch);
+        }
+        if (me.proxy) { // Resend the traffic
+            me.proxy.forEach(function(p) {
+                dgram.send(msg,0,msg.length,p.host,p.port,function() {});
+            });
         }
     });
 

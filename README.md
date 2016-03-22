@@ -126,6 +126,8 @@ If no port is provided, then the underlying socket will not be initialized (bind
 
 **nfScope** - defines your own decoders to NetFlow v9+ Option Template scopes
 
+**proxy** - define a proxy destination (one or many) where the netflow packets will be retransmitted
+
 ## Define your own decoders for NetFlow v9+ types
 
 NetFlow v9 could be extended with vendor specific types and many vendors define their own. There could be no netflow collector in the world that decodes all the specific vendor types.
@@ -259,6 +261,23 @@ The following example show you how:
     Collector(function(flow) {
         console.log(flow);
     }).listen(5555);
+
+## Proxy
+
+The netflow module allows being configured as proxy and to resend the netflow packets as-is to another destination(s)
+
+You can do that by using the proxy option in the configurations. For example:
+
+    require('debug').enable('NetFlowV9');
+    var Collector = require('node-netflowv9');
+    Collector({
+        proxy: "127.0.0.1:55555", // It could be as well array or object if you need multiple destinations
+        cb: function(flow) {
+            console.log(flow);
+        }
+    }).listen(5555);
+
+In this example every netflow packet received at port 5555 will be resent as well to 127.0.0.1:55555
 
 ## Multiple collectors
 
