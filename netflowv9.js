@@ -847,7 +847,7 @@ function NetFlowV9(options) {
         }
         if (me.proxy) { // Resend the traffic
             me.proxy.forEach(function(p) {
-                dgram.send(msg,0,msg.length,p.host,p.port,function() {});
+                me.server.send(msg,0,msg.length,p.port,p.host,function() {});
             });
         }
     });
