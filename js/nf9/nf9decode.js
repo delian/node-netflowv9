@@ -46,7 +46,7 @@ function nf9PktDecode(msg,rinfo) {
 
     function compileTemplate(list) {
         var i, z, nf, n;
-        var f = "var o = {}; var t;\n";
+        var f = "var o = Object.create(null); var t;\n";
         for (i = 0, n = 0; i < list.length; i++, n += z.len) {
             z = list[i];
             nf = nfTypes[z.type];
