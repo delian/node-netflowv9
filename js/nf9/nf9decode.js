@@ -133,7 +133,7 @@ function nf9PktDecode(msg,rinfo) {
         while (buf.length > 3) {
             type = buf.readUInt16BE(0);
             tlen = buf.readUInt16BE(2);
-            debug('    SCOPE type: %d (%s) len: %d, plen: %d', type,nfTypes[type].name,tlen,plen);
+            debug('    SCOPE type: %d (%s) len: %d, plen: %d', type,nfTypes[type] ? nfTypes[type].name : 'unknown',tlen,plen);
             if (type>0) cr+=compileScope(type, plen, tlen);
             buf = buf.slice(4);
             plen += tlen;
@@ -144,7 +144,7 @@ function nf9PktDecode(msg,rinfo) {
         while (buf.length > 3) {
             type = buf.readUInt16BE(0);
             tlen = buf.readUInt16BE(2);
-            debug('    FIELD type: %d (%s) len: %d, plen: %d', type,nfTypes[type].name,tlen,plen);
+            debug('    FIELD type: %d (%s) len: %d, plen: %d', type,nfTypes[type] ? nfTypes[type].name : 'unknown',tlen,plen);
             if (type>0) cr+=compileStatement(type, plen, tlen);
             buf = buf.slice(4);
             plen += tlen;
