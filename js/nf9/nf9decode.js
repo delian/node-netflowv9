@@ -157,7 +157,7 @@ function nf9PktDecode(msg,rinfo) {
     }
 
     var buf = msg.slice(20);
-    while (buf.length > 0) {
+    while (buf.length > 3) { // length > 3 allows us to skip padding
         var fsId = buf.readUInt16BE(0);
         var len = buf.readUInt16BE(2);
         if (fsId == 0) readTemplate(buf);
