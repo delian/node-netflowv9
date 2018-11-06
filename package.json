@@ -1,6 +1,6 @@
 {
   "name": "node-netflowv9",
-  "version": "0.2.14",
+  "version": "0.2.15",
   "description": "NetFlow Version 1,5,7,9 compatible library for Node.JS. It also support NetFlow v9 options template & data",
   "main": "netflowv9.js",
   "scripts": {
@@ -24,13 +24,13 @@
     "url": "https://github.com/delian/node-netflowv9/issues"
   },
   "dependencies": {
-    "clone": "^1.0.0",
-    "debug": "^1.0.2",
+    "clone": "^1.0.4",
+    "debug": "^4.1.0",
     "dequeue": "^1.0.5"
   },
   "homepage": "https://github.com/delian/node-netflowv9",
   "devDependencies": {
-    "chai": "^1.9.1",
-    "mocha": "^1.20.1"
+    "chai": "^4.2.0",
+    "mocha": "^5.2.0"
   }
 }
