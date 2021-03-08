@@ -176,6 +176,9 @@ function nf9PktDecode(msg,rinfo) {
             debug('Unknown template/option data with flowset id %d for %s:%d',fsId,rinfo.address,rinfo.port);
         }
         buf = buf.slice(len);
+        if (len == 0) {
+            break;
+        }
     }
 
     return out;
